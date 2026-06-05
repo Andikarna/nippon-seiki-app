@@ -11,15 +11,15 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ScanLine, Save, Send, CheckCircle2, Package, Clock, Layers } from "lucide-react";
-import { productionLines } from "@/lib/mock-data";
+import { ScanLine, Save, Send, CheckCircle2, Package, Clock, Layers, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { addProductionRecord } from "@/lib/api/db.functions";
+import { addProductionRecord, getActiveLines } from "@/lib/api/db.functions";
 import { useUser } from "@/lib/auth";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/part-input")({
-  head: () => ({ meta: [{ title: "Part Input — NPMS" }] }),
+  head: () => ({ meta: [{ title: "Part In — NPMS" }] }),
   component: PartInput,
 });
 
@@ -27,6 +27,28 @@ function PartInput() {
   const user = useUser();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Load active production lines from master database
+  const { data: dbLines } = useQuery({
+    queryKey: ["activeLines"],
+    queryFn: () => getActiveLines(),
+  });
+
+  const lines = dbLines && dbLines.length > 0
+    ? dbLines.map((l: any) => l.name)
+    : ["SC-1", "SC-2", "SC-3", "SS-1", "SS-2"];
+
+  // Manage drafts from localStorage
+  const [drafts, setDrafts] = useState<any[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("npms_drafts");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [form, setForm] = useState({
     barcode: "",
     part: "K18H",
@@ -36,6 +58,31 @@ function PartInput() {
     lot: "SC1 126-7",
     date: new Date().toISOString().slice(0, 10),
   });
+
+  const handleSaveDraft = () => {
+    const newDraft = {
+      id: `DFT-${Math.floor(1000 + Math.random() * 9000)}`,
+      time: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }),
+      data: { ...form },
+    };
+    const updated = [newDraft, ...drafts];
+    setDrafts(updated);
+    localStorage.setItem("npms_drafts", JSON.stringify(updated));
+    toast.success("Draft saved successfully.");
+  };
+
+  const handleLoadDraft = (d: any) => {
+    setForm({ ...d.data });
+    toast.info(`Draft ${d.id} loaded.`);
+  };
+
+  const handleDeleteDraft = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = drafts.filter((d) => d.id !== id);
+    setDrafts(updated);
+    localStorage.setItem("npms_drafts", JSON.stringify(updated));
+    toast.success("Draft deleted.");
+  };
 
   // Automatically update part & product name when barcodes are scanned
   const handleBarcodeChange = (val: string) => {
@@ -135,7 +182,7 @@ function PartInput() {
     }
   };
   return (
-    <AppLayout title="Part Input" subtitle="Quickly record Sub-Assy and Assy production transactions.">
+    <AppLayout title="Part In" subtitle="Quickly record Sub-Assy and Assy production transactions (Part Input).">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 border-0 shadow-soft">
           <CardHeader>
@@ -170,7 +217,7 @@ function PartInput() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="part">Part Number</Label>
+                  <Label htmlFor="part">TYPE (Part Number)</Label>
                   <Input id="part" value={form.part} onChange={(e) => setForm({ ...form, part: e.target.value })} className="font-mono h-11" disabled={submitting} />
                 </div>
                 <div className="space-y-2">
@@ -178,28 +225,28 @@ function PartInput() {
                   <Input id="product" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} className="h-11" disabled={submitting} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="line">Production Line</Label>
+                  <Label htmlFor="line">LINE (Production Line)</Label>
                   <Select value={form.line} onValueChange={(v) => setForm({ ...form, line: v })} disabled={submitting}>
                     <SelectTrigger id="line" className="h-11"><SelectValue /></SelectTrigger>
-                    <SelectContent>{productionLines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                    <SelectContent>{lines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="qty">Quantity</Label>
+                  <Label htmlFor="qty">TOTAL QTY (Quantity)</Label>
                   <Input id="qty" type="number" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} className="h-11 text-lg font-semibold tabular-nums" disabled={submitting} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lot">Lot Number</Label>
+                  <Label htmlFor="lot">KODE (Lot Number)</Label>
                   <Input id="lot" value={form.lot} onChange={(e) => setForm({ ...form, lot: e.target.value })} className="font-mono h-11" disabled={submitting} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="date">Production Date</Label>
+                  <Label htmlFor="date">TGL PROD (Production Date)</Label>
                   <Input id="date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="h-11" disabled={submitting} />
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <Button type="button" variant="outline" className="gap-2 sm:flex-1 h-11" disabled={submitting} onClick={() => toast.info("Draft saved locally (demo only).")}><Save className="h-4 w-4" />Save Draft</Button>
+                <Button type="button" variant="outline" className="gap-2 sm:flex-1 h-11" disabled={submitting} onClick={handleSaveDraft}><Save className="h-4 w-4" />Save Draft</Button>
                 <Button type="submit" disabled={submitting} className="gap-2 sm:flex-1 h-11 bg-gradient-primary shadow-glow">
                   {submitting ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -236,7 +283,7 @@ function PartInput() {
             <CardContent className="grid grid-cols-2 gap-3 text-sm">
               {[
                 { l: "Submitted", v: "Active" },
-                { l: "Drafts", v: "0" },
+                { l: "Drafts", v: String(drafts.length) },
                 { l: "Approved", v: "Live" },
                 { l: "Rejected", v: "0" },
               ].map((s) => (
@@ -247,6 +294,45 @@ function PartInput() {
               ))}
             </CardContent>
           </Card>
+
+          {drafts.length > 0 && (
+            <Card className="border-0 shadow-soft bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span>Saved Drafts</span>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">{drafts.length}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                {drafts.map((d) => (
+                  <div
+                    key={d.id}
+                    onClick={() => handleLoadDraft(d)}
+                    className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors cursor-pointer group"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-mono text-xs font-semibold text-primary">{d.id}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {d.data.part} · {d.data.qty} pcs · {d.data.line}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground font-mono">{d.time}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => handleDeleteDraft(d.id, e)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
