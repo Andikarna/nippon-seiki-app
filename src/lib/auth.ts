@@ -1,0 +1,85 @@
+// Simple client-only auth + mock data store for NPMS
+import { useEffect, useState } from "react";
+
+export type Role = "operator" | "supervisor" | "manager";
+export interface User {
+  name: string;
+  email: string;
+  role: Role;
+}
+
+const AUTH_KEY = "npms_auth";
+
+export const DEMO_USERS: User[] = [
+  {
+    name: "Afifi Rouf",
+    email: "operator@ins.co.id",
+    role: "operator",
+  },
+  {
+    name: "Sari Supervisor",
+    email: "supervisor@ins.co.id",
+    role: "supervisor",
+  },
+  {
+    name: "Andi Manager",
+    email: "manager@ins.co.id",
+    role: "manager",
+  },
+];
+
+export function getUser(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setUser(u: User | null) {
+  if (typeof window === "undefined") return;
+  if (u) localStorage.setItem(AUTH_KEY, JSON.stringify(u));
+  else localStorage.removeItem(AUTH_KEY);
+  window.dispatchEvent(new Event("npms-auth"));
+}
+
+export function loginUser(email: string, password?: string): User | null {
+  const found = DEMO_USERS.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+  if (found) {
+    setUser(found);
+    return found;
+  }
+
+  // Fallback for custom user logins
+  if (email && email.includes("@")) {
+    const name = email.split("@")[0]
+      .replace(/[._-]/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const newUser: User = {
+      name,
+      email: email.trim(),
+      role: "operator",
+    };
+    setUser(newUser);
+    return newUser;
+  }
+  return null;
+}
+
+export function useUser() {
+  const [user, set] = useState<User | null>(null);
+  useEffect(() => {
+    set(getUser());
+    const h = () => set(getUser());
+    window.addEventListener("npms-auth", h);
+    window.addEventListener("storage", h);
+    return () => {
+      window.removeEventListener("npms-auth", h);
+      window.removeEventListener("storage", h);
+    };
+  }, []);
+  return user;
+}
+

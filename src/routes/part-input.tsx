@@ -1,0 +1,165 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AppLayout } from "@/components/app-layout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { ScanLine, Save, Send, CheckCircle2, Package, Clock, Layers } from "lucide-react";
+import { productionLines } from "@/lib/mock-data";
+import { useState } from "react";
+
+export const Route = createFileRoute("/part-input")({
+  head: () => ({ meta: [{ title: "Part Input — NPMS" }] }),
+  component: PartInput,
+});
+
+function PartInput() {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    barcode: "", part: "SC-425-25", product: "Speedometer Sub-Assy",
+    line: "Line A1", qty: "120", lot: "LOT-202511025", date: new Date().toISOString().slice(0, 10),
+  });
+
+  return (
+    <AppLayout title="Part Input" subtitle="Quickly record Sub-Assy and Assy production transactions.">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 border-0 shadow-soft">
+          <CardHeader>
+            <CardTitle className="text-base">Production Transaction</CardTitle>
+            <p className="text-xs text-muted-foreground">Scan a barcode or fill in the fields manually.</p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Barcode scanner area */}
+            <div className="relative rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground shadow-glow">
+                  <ScanLine className="h-7 w-7" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">Barcode Scanner</div>
+                  <div className="text-xs text-muted-foreground">Focus the input and scan, or type manually.</div>
+                </div>
+                <Badge variant="outline" className="bg-success/10 text-success border-success/20 gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> Ready
+                </Badge>
+              </div>
+              <Input
+                autoFocus
+                value={form.barcode}
+                onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                placeholder="Scan or enter barcode..."
+                className="mt-4 h-12 text-base font-mono bg-background"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Part Number</Label>
+                <Input value={form.part} onChange={(e) => setForm({ ...form, part: e.target.value })} className="font-mono h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label>Product Name</Label>
+                <Input value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} className="h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label>Production Line</Label>
+                <Select value={form.line} onValueChange={(v) => setForm({ ...form, line: v })}>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>{productionLines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Quantity</Label>
+                <Input type="number" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} className="h-11 text-lg font-semibold tabular-nums" />
+              </div>
+              <div className="space-y-2">
+                <Label>Lot Number</Label>
+                <Input value={form.lot} onChange={(e) => setForm({ ...form, lot: e.target.value })} className="font-mono h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label>Production Date</Label>
+                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="h-11" />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <Button variant="outline" className="gap-2 sm:flex-1 h-11"><Save className="h-4 w-4" />Save Draft</Button>
+              <Button onClick={() => setOpen(true)} className="gap-2 sm:flex-1 h-11 bg-gradient-primary shadow-glow">
+                <Send className="h-4 w-4" />Submit Transaction
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Side info */}
+        <div className="space-y-4">
+          <Card className="border-0 shadow-soft">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Auto-fill preview</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <Row icon={Package} label="Product" value={form.product} />
+              <Row icon={Layers} label="Category" value="Sub-Assy" />
+              <Row icon={Clock} label="Last produced" value="Today · 07:42" />
+              <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-xs text-success flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" /> Validation passed — ready to submit.
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-soft">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Today's tally</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3 text-sm">
+              {[
+                { l: "Submitted", v: "24" },
+                { l: "Drafts", v: "3" },
+                { l: "Approved", v: "21" },
+                { l: "Rejected", v: "0" },
+              ].map((s) => (
+                <div key={s.l} className="rounded-lg bg-muted/50 p-3">
+                  <div className="text-xs text-muted-foreground">{s.l}</div>
+                  <div className="text-xl font-semibold mt-1">{s.v}</div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="mx-auto h-12 w-12 rounded-full bg-success/15 text-success grid place-items-center mb-2">
+              <CheckCircle2 className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-center">Transaction Submitted</DialogTitle>
+            <DialogDescription className="text-center">
+              Part {form.part} ({form.qty} pcs) recorded on {form.line}. The supervisor will be notified for approval.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button className="w-full bg-gradient-primary" onClick={() => setOpen(false)}>Continue</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AppLayout>
+  );
+}
+
+function Row({ icon: Icon, label, value }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="flex items-center gap-2 text-muted-foreground"><Icon className="h-4 w-4" />{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+}
