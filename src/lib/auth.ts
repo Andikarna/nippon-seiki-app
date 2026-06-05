@@ -10,6 +10,7 @@ export interface User {
 
 const AUTH_KEY = "npms_auth";
 
+<<<<<<< HEAD
 const DEFAULT_USER: User = {
   name: "Demo Operator",
   email: "operator@ins.co.id",
@@ -23,6 +24,33 @@ export function getUser(): User | null {
     return raw ? (JSON.parse(raw) as User) : DEFAULT_USER;
   } catch {
     return DEFAULT_USER;
+=======
+export const DEMO_USERS: User[] = [
+  {
+    name: "Afifi Rouf",
+    email: "operator@ins.co.id",
+    role: "operator",
+  },
+  {
+    name: "Sari Supervisor",
+    email: "supervisor@ins.co.id",
+    role: "supervisor",
+  },
+  {
+    name: "Andi Manager",
+    email: "manager@ins.co.id",
+    role: "manager",
+  },
+];
+
+export function getUser(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+>>>>>>> origin/connection-database
   }
 }
 
@@ -33,6 +61,24 @@ export function setUser(u: User | null) {
   window.dispatchEvent(new Event("npms-auth"));
 }
 
+<<<<<<< HEAD
+=======
+import { authenticateUser } from "./api/db.functions";
+
+export async function loginUser(email: string, password?: string): Promise<User | null> {
+  try {
+    const res = await authenticateUser({ data: { email, password } });
+    if (res.success && res.user) {
+      setUser(res.user);
+      return res.user;
+    }
+  } catch (e) {
+    console.error("Auth server function error:", e);
+  }
+  return null;
+}
+
+>>>>>>> origin/connection-database
 export function useUser() {
   const [user, set] = useState<User | null>(null);
   useEffect(() => {
@@ -47,3 +93,7 @@ export function useUser() {
   }, []);
   return user;
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/connection-database

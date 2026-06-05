@@ -14,8 +14,15 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Search, Filter, Download, Plus, MoreHorizontal, Eye, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+<<<<<<< HEAD
 import { productionData, productionLines } from "@/lib/mock-data";
 import { useMemo, useState } from "react";
+=======
+import { productionLines } from "@/lib/mock-data";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getProductionRecords } from "@/lib/api/db.functions";
+>>>>>>> origin/connection-database
 
 export const Route = createFileRoute("/production")({
   head: () => ({ meta: [{ title: "Production Data — NPMS" }] }),
@@ -38,6 +45,7 @@ function ProductionPage() {
   const [page, setPage] = useState(1);
   const perPage = 10;
 
+<<<<<<< HEAD
   const filtered = useMemo(() => productionData.filter((r) =>
     (line === "all" || r.line === line) &&
     (status === "all" || r.status === status) &&
@@ -47,6 +55,16 @@ function ProductionPage() {
   const total = filtered.length;
   const pages = Math.max(1, Math.ceil(total / perPage));
   const rows = filtered.slice((page - 1) * perPage, page * perPage);
+=======
+  const { data, isLoading } = useQuery({
+    queryKey: ["productionRecords", q, line, status, page],
+    queryFn: () => getProductionRecords({ data: { q, line, status, page, perPage } }),
+  });
+
+  const records = data?.records ?? [];
+  const total = data?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / perPage));
+>>>>>>> origin/connection-database
 
   return (
     <AppLayout title="Production Data" subtitle="Monitor every production transaction across all lines.">
@@ -96,6 +114,7 @@ function ProductionPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+<<<<<<< HEAD
                 {rows.map((r) => (
                   <TableRow key={r.id} className="hover:bg-muted/30">
                     <TableCell className="font-mono text-xs font-medium">{r.id}</TableCell>
@@ -124,6 +143,48 @@ function ProductionPage() {
                 ))}
                 {rows.length === 0 && (
                   <TableRow><TableCell colSpan={9} className="text-center py-10 text-muted-foreground text-sm">No matching records.</TableCell></TableRow>
+=======
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-10 text-muted-foreground text-sm">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2" />
+                      Loading production records...
+                    </TableCell>
+                  </TableRow>
+                ) : records.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-10 text-muted-foreground text-sm">
+                      No matching records.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  records.map((r) => (
+                    <TableRow key={r.id} className="hover:bg-muted/30">
+                      <TableCell className="font-mono text-xs font-medium">{r.id}</TableCell>
+                      <TableCell className="text-sm">{r.date}</TableCell>
+                      <TableCell className="font-mono text-xs">{r.partNumber}</TableCell>
+                      <TableCell>{r.productName}</TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">{r.quantity}</TableCell>
+                      <TableCell><Badge variant="outline">{r.line}</Badge></TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{r.operator}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={statusBadge(r.status)}>{r.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem><Eye className="h-4 w-4 mr-2" />View</DropdownMenuItem>
+                            <DropdownMenuItem><Pencil className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive"><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+>>>>>>> origin/connection-database
                 )}
               </TableBody>
             </Table>

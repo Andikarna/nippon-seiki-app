@@ -5,7 +5,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { setUser, useUser } from "@/lib/auth";
+import { setUser, useUser, getUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,6 +36,14 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
     document.documentElement.classList.toggle("dark", saved);
   }, []);
 
+  useEffect(() => {
+    const currentUser = getUser();
+    if (!currentUser) {
+      navigate({ to: "/login" });
+    }
+  }, [user, navigate]);
+
+
 
   const toggleDark = () => {
     const next = !dark;
@@ -45,6 +53,17 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
   };
 
   const groups = Array.from(new Set(nav.map((n) => n.group)));
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <span className="text-sm font-medium text-muted-foreground">Verifying session...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-muted/40">
@@ -69,11 +88,10 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
                     <Link
                       key={n.to}
                       to={n.to}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                        active
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${active
                           ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-soft"
                           : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                      }`}
+                        }`}
                     >
                       <Icon className="h-4 w-4" />
                       <span>{n.label}</span>
@@ -99,7 +117,7 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search part number, lot, operator..." className="pl-9 bg-muted/50 border-0" />
           </div>
-          <Button variant="ghost" size="icon" onClick={toggleDark} aria-label="Toggle theme">
+          <Button variant="ghost" size="icon" onClick={toggleDark} aria-label="Toggle theme" className="ml-auto">
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
           <Button variant="ghost" size="icon" className="relative">
@@ -108,18 +126,18 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 px-2">
-                <div className="h-8 w-8 rounded-full bg-gradient-primary grid place-items-center text-primary-foreground text-xs font-semibold">
+              <Button variant="ghost" className="relative h-10 gap-2.5 px-3 rounded-full hover:bg-muted/80 transition-colors border border-transparent hover:border-border/60">
+                <div className="h-7 w-7 rounded-full bg-gradient-primary grid place-items-center text-primary-foreground text-xs font-semibold shadow-sm">
                   {user?.name?.[0] ?? "A"}
                 </div>
-                <div className="text-left hidden sm:block">
-                  <div className="text-sm font-medium leading-tight">{user?.name ?? "Operator"}</div>
-                  <div className="text-[11px] text-muted-foreground capitalize leading-tight">{user?.role ?? "operator"}</div>
+                <div className="text-left hidden sm:flex flex-col justify-center">
+                  <div className="text-xs font-semibold leading-tight text-foreground">{user?.name ?? "Operator"}</div>
+                  <div className="text-[10px] text-muted-foreground capitalize leading-none mt-0.5">{user?.role ?? "operator"}</div>
                 </div>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56 mt-1.5">
               <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem><UserIcon className="h-4 w-4 mr-2" />Profile</DropdownMenuItem>

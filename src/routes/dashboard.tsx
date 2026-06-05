@@ -11,6 +11,7 @@ import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip,
 } from "recharts";
+<<<<<<< HEAD
 import { dailyTrend, fifoPerformance, activities, alerts, productionLines } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/dashboard")({
@@ -31,6 +32,39 @@ function Dashboard() {
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpis.map((k) => (
+=======
+import { fifoPerformance } from "@/lib/mock-data";
+import { useUser } from "@/lib/auth";
+import { getDashboardData } from "@/lib/api/db.functions";
+
+export const Route = createFileRoute("/dashboard")({
+  head: () => ({ meta: [{ title: "Dashboard — NPMS" }] }),
+  loader: async () => {
+    return getDashboardData();
+  },
+  component: Dashboard,
+});
+
+function Dashboard() {
+  const data = Route.useLoaderData();
+  const user = useUser();
+  const firstName = user?.name ? user.name.split(" ")[0] : "Operator";
+
+  const { kpis: dbKpis, dailyTrend, productionLines, activities, alerts } = data;
+
+  const kpiCards = [
+    { label: "Today's Production", value: dbKpis.todayProduction.toLocaleString(), delta: "+12.4%", up: true, icon: Activity, hint: "vs yesterday" },
+    { label: "Total Parts In", value: dbKpis.totalPartsIn.toLocaleString(), delta: "+8.1%", up: true, icon: PackagePlus, hint: "Sub-Assy" },
+    { label: "Total Parts Out", value: dbKpis.totalPartsOut.toLocaleString(), delta: "-2.3%", up: false, icon: PackageMinus, hint: "Assy line" },
+    { label: "FIFO Compliance", value: dbKpis.fifoCompliance, delta: "+1.2%", up: true, icon: Boxes, hint: "7-day avg" },
+  ];
+
+  return (
+    <AppLayout title="Dashboard" subtitle={`Hey, ${firstName} — you have 3 production tasks today.`}>
+      {/* KPI cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {kpiCards.map((k) => (
+>>>>>>> origin/connection-database
           <Card key={k.label} className="border-0 shadow-soft hover:shadow-elevated transition-shadow">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
@@ -140,6 +174,7 @@ function Dashboard() {
             <p className="text-xs text-muted-foreground">Live status</p>
           </CardHeader>
           <CardContent className="space-y-3">
+<<<<<<< HEAD
             {productionLines.map((l, i) => {
               const status = i === 1 ? "idle" : i === 4 ? "warning" : "running";
               const pct = [88, 0, 76, 92, 64][i];
@@ -149,6 +184,20 @@ function Dashboard() {
                     <div className="flex items-center gap-2">
                       <span className={`h-2 w-2 rounded-full ${status === "running" ? "bg-success animate-pulse" : status === "warning" ? "bg-warning" : "bg-muted-foreground"}`} />
                       <span className="font-medium">{l}</span>
+=======
+            {productionLines.map((l: any, i: number) => {
+              const lineId = l.id || l;
+              const lineName = l.name || l;
+              const lineActive = l.active !== undefined ? l.active : true;
+              const status = !lineActive ? "idle" : i === 1 ? "idle" : i === 4 ? "warning" : "running";
+              const pct = l.percentage ?? [88, 0, 76, 92, 64][i % 5];
+              return (
+                <div key={lineId}>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${status === "running" ? "bg-success animate-pulse" : status === "warning" ? "bg-warning" : "bg-muted-foreground"}`} />
+                      <span className="font-medium">{lineName}</span>
+>>>>>>> origin/connection-database
                     </div>
                     <span className="text-xs text-muted-foreground">{pct}%</span>
                   </div>

@@ -12,7 +12,13 @@ import {
   FileText, Calendar, Download, Printer, QrCode, FileSpreadsheet, FileType,
 } from "lucide-react";
 import { useState } from "react";
+<<<<<<< HEAD
 import { productionData } from "@/lib/mock-data";
+=======
+import { useQuery } from "@tanstack/react-query";
+import { getReportsData } from "@/lib/api/db.functions";
+import { toast } from "sonner";
+>>>>>>> origin/connection-database
 
 export const Route = createFileRoute("/reports")({
   head: () => ({ meta: [{ title: "Reports — NPMS" }] }),
@@ -31,6 +37,17 @@ function Reports() {
   const [selected, setSelected] = useState("daily");
   const current = reportTypes.find((r) => r.id === selected)!;
 
+<<<<<<< HEAD
+=======
+  // Query reports data from database
+  const { data, isLoading } = useQuery({
+    queryKey: ["reportsData"],
+    queryFn: () => getReportsData(),
+  });
+
+  const productionData = data?.productionData ?? [];
+
+>>>>>>> origin/connection-database
   return (
     <AppLayout title="Reports & Print" subtitle="Generate, preview, and export production documents.">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -93,7 +110,11 @@ function Reports() {
                 { l: "Excel", icon: FileSpreadsheet },
                 { l: "CSV", icon: FileText },
               ].map((f, i) => (
+<<<<<<< HEAD
                 <Button key={f.l} variant={i === 0 ? "default" : "outline"} className={`h-auto flex-col py-3 gap-1 ${i === 0 ? "bg-gradient-primary" : ""}`}>
+=======
+                <Button key={f.l} variant={i === 0 ? "default" : "outline"} className={`h-auto flex-col py-3 gap-1 ${i === 0 ? "bg-gradient-primary" : ""}`} onClick={() => toast.success(`Preparing ${f.l} download...`)}>
+>>>>>>> origin/connection-database
                   <f.icon className="h-5 w-5" />
                   <span className="text-xs">{f.l}</span>
                 </Button>
@@ -110,9 +131,15 @@ function Reports() {
               <p className="text-xs text-muted-foreground">Document will be generated using current parameters.</p>
             </div>
             <div className="flex gap-2">
+<<<<<<< HEAD
               <Button variant="outline" className="gap-2"><QrCode className="h-4 w-4" />Print Label</Button>
               <Button variant="outline" className="gap-2"><Download className="h-4 w-4" />Download</Button>
               <Button className="gap-2 bg-gradient-primary"><Printer className="h-4 w-4" />Print</Button>
+=======
+              <Button variant="outline" className="gap-2" onClick={() => toast.success("Simulating label printing...")}><QrCode className="h-4 w-4" />Print Label</Button>
+              <Button variant="outline" className="gap-2" onClick={() => toast.success("Downloading report...")}><Download className="h-4 w-4" />Download</Button>
+              <Button className="gap-2 bg-gradient-primary" onClick={() => window.print()}><Printer className="h-4 w-4" />Print</Button>
+>>>>>>> origin/connection-database
             </div>
           </CardHeader>
           <CardContent className="p-6 bg-muted/30">
@@ -139,9 +166,15 @@ function Reports() {
 
               <div className="grid grid-cols-4 gap-3 mt-6">
                 {[
+<<<<<<< HEAD
                   { l: "Total Output", v: "2,847" },
                   { l: "Sub-Assy", v: "1,524" },
                   { l: "Assy", v: "1,318" },
+=======
+                  { l: "Total Output", v: "Active" },
+                  { l: "Sub-Assy", v: "Live" },
+                  { l: "Assy", v: "Live" },
+>>>>>>> origin/connection-database
                   { l: "FIFO Rate", v: "98.4%" },
                 ].map((s) => (
                   <div key={s.l} className="rounded-lg border p-3">
@@ -162,6 +195,7 @@ function Reports() {
                   </tr>
                 </thead>
                 <tbody>
+<<<<<<< HEAD
                   {productionData.slice(0, 8).map((r) => (
                     <tr key={r.id} className="border-b last:border-0">
                       <td className="py-2 font-mono text-xs">{r.id}</td>
@@ -171,6 +205,31 @@ function Reports() {
                       <td className="py-2 text-right tabular-nums">{r.quantity}</td>
                     </tr>
                   ))}
+=======
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-muted-foreground text-xs">
+                        Loading report details...
+                      </td>
+                    </tr>
+                  ) : productionData.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-muted-foreground text-xs">
+                        No production data available for report.
+                      </td>
+                    </tr>
+                  ) : (
+                    productionData.slice(0, 8).map((r: any) => (
+                      <tr key={r.id} className="border-b last:border-0">
+                        <td className="py-2 font-mono text-xs">{r.id}</td>
+                        <td className="py-2 font-mono text-xs">{r.partNumber}</td>
+                        <td className="py-2">{r.productName}</td>
+                        <td className="py-2"><Badge variant="outline" className="text-[10px]">{r.line}</Badge></td>
+                        <td className="py-2 text-right tabular-nums">{r.quantity}</td>
+                      </tr>
+                    ))
+                  )}
+>>>>>>> origin/connection-database
                 </tbody>
               </table>
 
