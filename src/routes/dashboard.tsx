@@ -11,30 +11,37 @@ import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip,
 } from "recharts";
-import { dailyTrend, fifoPerformance, activities, alerts, productionLines } from "@/lib/mock-data";
+import { fifoPerformance } from "@/lib/mock-data";
 import { useUser } from "@/lib/auth";
+import { getDashboardData } from "@/lib/api/db.functions";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — NPMS" }] }),
+  loader: async () => {
+    return getDashboardData();
+  },
   component: Dashboard,
 });
 
-const kpis = [
-  { label: "Today's Production", value: "2,847", delta: "+12.4%", up: true, icon: Activity, hint: "vs yesterday" },
-  { label: "Total Parts In", value: "1,524", delta: "+8.1%", up: true, icon: PackagePlus, hint: "Sub-Assy" },
-  { label: "Total Parts Out", value: "1,318", delta: "-2.3%", up: false, icon: PackageMinus, hint: "Assy line" },
-  { label: "FIFO Compliance", value: "98.4%", delta: "+1.2%", up: true, icon: Boxes, hint: "7-day avg" },
-];
-
 function Dashboard() {
+  const data = Route.useLoaderData();
   const user = useUser();
   const firstName = user?.name ? user.name.split(" ")[0] : "Operator";
+
+  const { kpis: dbKpis, dailyTrend, productionLines, activities, alerts } = data;
+
+  const kpiCards = [
+    { label: "Today's Production", value: dbKpis.todayProduction.toLocaleString(), delta: "+12.4%", up: true, icon: Activity, hint: "vs yesterday" },
+    { label: "Total Parts In", value: dbKpis.totalPartsIn.toLocaleString(), delta: "+8.1%", up: true, icon: PackagePlus, hint: "Sub-Assy" },
+    { label: "Total Parts Out", value: dbKpis.totalPartsOut.toLocaleString(), delta: "-2.3%", up: false, icon: PackageMinus, hint: "Assy line" },
+    { label: "FIFO Compliance", value: dbKpis.fifoCompliance, delta: "+1.2%", up: true, icon: Boxes, hint: "7-day avg" },
+  ];
 
   return (
     <AppLayout title="Dashboard" subtitle={`Hey, ${firstName} — you have 3 production tasks today.`}>
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {kpis.map((k) => (
+        {kpiCards.map((k) => (
           <Card key={k.label} className="border-0 shadow-soft hover:shadow-elevated transition-shadow">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
@@ -144,15 +151,18 @@ function Dashboard() {
             <p className="text-xs text-muted-foreground">Live status</p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {productionLines.map((l, i) => {
-              const status = i === 1 ? "idle" : i === 4 ? "warning" : "running";
-              const pct = [88, 0, 76, 92, 64][i];
+            {productionLines.map((l: any, i: number) => {
+              const lineId = l.id || l;
+              const lineName = l.name || l;
+              const lineActive = l.active !== undefined ? l.active : true;
+              const status = !lineActive ? "idle" : i === 1 ? "idle" : i === 4 ? "warning" : "running";
+              const pct = l.percentage ?? [88, 0, 76, 92, 64][i % 5];
               return (
-                <div key={l}>
+                <div key={lineId}>
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <span className={`h-2 w-2 rounded-full ${status === "running" ? "bg-success animate-pulse" : status === "warning" ? "bg-warning" : "bg-muted-foreground"}`} />
-                      <span className="font-medium">{l}</span>
+                      <span className="font-medium">{lineName}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">{pct}%</span>
                   </div>
