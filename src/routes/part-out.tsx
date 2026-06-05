@@ -5,15 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { QrCode, Send, CheckCircle2, AlertTriangle, Boxes, Camera } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { QrCode, Send, CheckCircle2, AlertTriangle, Boxes } from "lucide-react";
-import { productionLines } from "@/lib/mock-data";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { useUser } from "@/lib/auth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getFifoMaterials, dispatchFifoMaterial } from "@/lib/api/db.functions";
+import { getFifoMaterials, dispatchFifoMaterial, getActiveLines } from "@/lib/api/db.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/part-out")({
@@ -34,6 +36,9 @@ function PartOut() {
   const user = useUser();
   const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [showBypassDialog, setShowBypassDialog] = useState(false);
+  const [bypassReason, setBypassReason] = useState("");
 
   // Load stock materials from MySQL
   const { data: fifoData } = useQuery({
@@ -42,6 +47,16 @@ function PartOut() {
   });
 
   const materials = fifoData?.materials ?? [];
+
+  // Load active production lines from master database
+  const { data: dbLines } = useQuery({
+    queryKey: ["activeLines"],
+    queryFn: () => getActiveLines(),
+  });
+
+  const lines = dbLines && dbLines.length > 0
+    ? dbLines.map((l: any) => l.name)
+    : ["SC-1", "SC-2", "SC-3", "SS-1", "SS-2"];
 
   const [form, setForm] = useState({
     part: "K18H",
@@ -86,17 +101,13 @@ function PartOut() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.lot) {
-      toast.error("No FIFO lot selected.");
-      return;
-    }
-    if (!form.qty || Number(form.qty) <= 0) {
-      toast.error("Quantity must be greater than 0");
-      return;
-    }
+  const handleSimulateScan = (lotNumber: string) => {
+    handleLotChange(lotNumber);
+    setIsScanning(false);
+    toast.success(`QR Code for Lot ${lotNumber} scanned successfully.`);
+  };
 
+  const proceedSubmit = async () => {
     setSubmitting(true);
     try {
       const res = await dispatchFifoMaterial({
@@ -112,13 +123,7 @@ function PartOut() {
       });
 
       if (res.success) {
-        if (res.fifoStatus === "Violation") {
-          toast.warning(`FIFO VIOLATION recorded for LOT-${form.lot.replace("LOT-", "")}! An alert has been raised.`, {
-            duration: 6000,
-          });
-        } else {
-          toast.success("Part Out transaction logged successfully.");
-        }
+        toast.success("Part Out transaction logged successfully.");
         // Invalidate queries to refresh stock tables
         queryClient.invalidateQueries({ queryKey: ["fifoMaterials"] });
       }
@@ -128,6 +133,51 @@ function PartOut() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleBypassRequest = () => {
+    if (!bypassReason.trim()) {
+      toast.error("Please provide a reason for the bypass.");
+      return;
+    }
+
+    const saved = localStorage.getItem("npms_approvals");
+    const currentApprovals = saved ? JSON.parse(saved) : [];
+    
+    const newBypass = {
+      id: `APP-${Math.floor(4000 + Math.random() * 999)}`,
+      lotNumber: form.lot,
+      partNumber: form.part,
+      quantity: Number(form.qty),
+      operator: form.operator || user?.name || "Demo Operator",
+      reason: `FIFO Violation Bypass: ${bypassReason.trim()}`,
+    };
+
+    const updated = [newBypass, ...currentApprovals];
+    localStorage.setItem("npms_approvals", JSON.stringify(updated));
+    
+    setShowBypassDialog(false);
+    setBypassReason("");
+    toast.success(`Bypass request submitted for Lot ${form.lot}. Pending supervisor approval.`);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.lot) {
+      toast.error("No FIFO lot selected.");
+      return;
+    }
+    if (!form.qty || Number(form.qty) <= 0) {
+      toast.error("Quantity must be greater than 0");
+      return;
+    }
+
+    if (!isFIFOCompliant) {
+      setShowBypassDialog(true);
+      return;
+    }
+
+    await proceedSubmit();
   };
 
   // Compute live stock summary based on database values
@@ -143,9 +193,15 @@ function PartOut() {
     };
   });
 
-  // Check if current selection is compliant
+  // Check if current selection is compliant (i.e. is this the oldest lot in stock for this part?)
   const selectedMat = materials.find((m: any) => m.lotNumber === form.lot);
-  const isFIFOCompliant = selectedMat ? selectedMat.status === "Compliant" : true;
+  const isFIFOCompliant = selectedMat
+    ? !materials.some(
+        (m: any) =>
+          m.partNumber === selectedMat.partNumber &&
+          new Date(m.incomingDate) < new Date(selectedMat.incomingDate)
+      )
+    : true;
   return (
     <AppLayout title="Part Out" subtitle="Record outgoing parts from Sub-Assy to Assy lines.">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -163,7 +219,7 @@ function PartOut() {
                 <div className="text-sm font-medium">QR Scanner</div>
                 <div className="text-xs text-muted-foreground">Position the QR code in the camera frame.</div>
               </div>
-              <Button variant="outline" type="button" onClick={() => toast.info("Camera activation is simulated.")}>Activate camera</Button>
+              <Button variant="outline" type="button" onClick={() => setIsScanning(true)}>Activate camera</Button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -209,7 +265,7 @@ function PartOut() {
                   <Label htmlFor="dest">Destination Line</Label>
                   <Select value={form.line} onValueChange={(v) => setForm({ ...form, line: v })} disabled={submitting}>
                     <SelectTrigger id="dest" className="h-11"><SelectValue /></SelectTrigger>
-                    <SelectContent>{productionLines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                    <SelectContent>{lines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -309,6 +365,87 @@ function PartOut() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isScanning} onOpenChange={setIsScanning}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Camera className="h-5 w-5 text-primary" />
+              <span>Simulated QR Scanner</span>
+            </DialogTitle>
+            <DialogDescription>
+              Select an active lot below to simulate scanning its QR code.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-border flex flex-col items-center justify-center text-white">
+              <div className="absolute inset-0 opacity-20 border-[20px] border-primary animate-pulse" />
+              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-success shadow-[0_0_8px_#10b981] animate-bounce" />
+              <QrCode className="h-12 w-12 text-muted-foreground mb-2" />
+              <span className="text-xs text-muted-foreground font-mono">Simulating camera feed...</span>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-muted-foreground">Select a lot from current stock:</div>
+              <div className="max-h-[180px] overflow-y-auto space-y-1.5 pr-1">
+                {materials.map((m: any) => (
+                  <button
+                    key={m.lotNumber}
+                    type="button"
+                    onClick={() => handleSimulateScan(m.lotNumber)}
+                    className="w-full text-left p-2.5 rounded-lg border border-border hover:border-primary hover:bg-primary/5 flex items-center justify-between text-sm transition-all font-mono"
+                  >
+                    <div>
+                      <div className="font-semibold text-primary">{m.lotNumber}</div>
+                      <div className="text-xs text-muted-foreground">{m.partNumber}</div>
+                    </div>
+                    <Badge variant="secondary" className="bg-muted text-foreground">
+                      Qty: {m.quantity}
+                    </Badge>
+                  </button>
+                ))}
+                {materials.length === 0 && (
+                  <div className="text-xs text-muted-foreground text-center py-4 italic">
+                    No active lots available in stock to scan.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBypassDialog} onOpenChange={setShowBypassDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              <span>FIFO Violation Detected</span>
+            </DialogTitle>
+            <DialogDescription>
+              Lot {form.lot} is not the oldest lot in stock. To proceed, you must submit an approval request to your supervisor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="reason">Reason for bypass (Required)</Label>
+              <Input
+                id="reason"
+                placeholder="e.g. Older lot is damaged, inaccessible, or QC locked"
+                value={bypassReason}
+                onChange={(e) => setBypassReason(e.target.value)}
+                className="h-11"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" type="button" onClick={() => setShowBypassDialog(false)}>Cancel</Button>
+              <Button type="button" className="bg-gradient-primary text-white" onClick={handleBypassRequest}>
+                Submit Request
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

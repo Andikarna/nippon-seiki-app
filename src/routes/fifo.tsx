@@ -10,8 +10,12 @@ import {
 import { CheckCircle2, AlertTriangle, XCircle, ScanLine, ShieldCheck, Clock } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getFifoMaterials, checkFifoPosition } from "@/lib/api/db.functions";
+import { getFifoMaterials, checkFifoPosition, dispatchFifoMaterial } from "@/lib/api/db.functions";
 import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { useUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/fifo")({
   head: () => ({ meta: [{ title: "FIFO Check — NPMS" }] }),
@@ -19,6 +23,9 @@ export const Route = createFileRoute("/fifo")({
 });
 
 function FifoPage() {
+  const user = useUser();
+  const isSupervisor = user?.role === "supervisor" || user?.role === "manager";
+
   const { data, isLoading } = useQuery({
     queryKey: ["fifoMaterials"],
     queryFn: () => getFifoMaterials(),
@@ -27,6 +34,56 @@ function FifoPage() {
   const [lotNumber, setLotNumber] = useState("");
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanLoading, setScanLoading] = useState(false);
+
+  const [isApprovalsOpen, setIsApprovalsOpen] = useState(false);
+  const [approvals, setApprovals] = useState<any[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("npms_approvals");
+      if (saved) return JSON.parse(saved);
+      const initial = [
+        { id: "APP-4011", lotNumber: "SC1 126-8", partNumber: "K18H", quantity: 900, operator: "Afifi Rouf", reason: "FIFO Violation (SC1 126-7 is older)" },
+        { id: "APP-4012", lotNumber: "SC1 126-14", partNumber: "1PA", quantity: 200, operator: "Bayu Saputra", reason: "FIFO Violation (SC1 126-10 is older)" }
+      ];
+      localStorage.setItem("npms_approvals", JSON.stringify(initial));
+      return initial;
+    } catch {
+      return [];
+    }
+  });
+
+  const handleApprove = async (a: any) => {
+    try {
+      const res = await dispatchFifoMaterial({
+        data: {
+          partNumber: a.partNumber,
+          productName: `SS COMP ${a.partNumber} Assy`,
+          quantity: a.quantity,
+          destinationLine: "SS-2",
+          operator: a.operator,
+          lotNumber: a.lotNumber,
+          date: new Date().toISOString().slice(0, 16),
+        }
+      });
+      
+      if (res.success) {
+        toast.success(`Lot ${a.lotNumber} bypass approved and dispatched successfully.`);
+        const updated = approvals.filter((item) => item.id !== a.id);
+        setApprovals(updated);
+        localStorage.setItem("npms_approvals", JSON.stringify(updated));
+      }
+    } catch (err) {
+      toast.error("Failed to process approval dispatch.");
+      console.error(err);
+    }
+  };
+
+  const handleReject = (id: string, lotNumber: string) => {
+    const updated = approvals.filter((a) => a.id !== id);
+    setApprovals(updated);
+    localStorage.setItem("npms_approvals", JSON.stringify(updated));
+    toast.error(`Request for Lot ${lotNumber} rejected.`);
+  };
 
   const materials = data?.materials ?? [];
   const counts = data?.counts ?? { compliant: 0, warning: 0, violation: 0 };
@@ -193,7 +250,11 @@ function FifoPage() {
             <CardTitle className="text-base">FIFO Materials</CardTitle>
             <p className="text-xs text-muted-foreground">All tracked lots and their current FIFO status</p>
           </div>
-          <Button variant="outline" size="sm">Supervisor approval queue</Button>
+          {isSupervisor && (
+            <Button variant="outline" size="sm" onClick={() => setIsApprovalsOpen(true)}>
+              Supervisor approval queue {approvals.length > 0 && <Badge variant="secondary" className="ml-1.5 bg-primary/10 text-primary">{approvals.length}</Badge>}
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <div className="rounded-xl border overflow-hidden">
@@ -251,6 +312,73 @@ function FifoPage() {
           </div>
         </CardContent>
       </Card>
+
+      {isSupervisor && (
+        <Dialog open={isApprovalsOpen} onOpenChange={setIsApprovalsOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                <span>Supervisor Approval Queue</span>
+              </DialogTitle>
+              <DialogDescription>
+                Review pending FIFO bypass approval requests from operators.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2 max-h-[350px] overflow-y-auto pr-1">
+              {approvals.map((a) => (
+                <div key={a.id} className="p-3.5 rounded-xl border border-border bg-card hover:bg-muted/30 transition-all space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-semibold text-primary">{a.id}</span>
+                        <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">Pending</Badge>
+                      </div>
+                      <div className="mt-1 text-sm font-semibold font-mono">{a.lotNumber} ({a.partNumber})</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Submitted by Operator: <span className="font-medium text-foreground">{a.operator}</span></div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-muted-foreground">Qty Requested</span>
+                      <div className="text-base font-semibold text-foreground tabular-nums">{a.quantity} pcs</div>
+                    </div>
+                  </div>
+
+                  <div className="text-xs rounded-lg bg-destructive/5 border border-destructive/15 text-destructive p-2 flex items-start gap-1.5 font-sans">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    <span>{a.reason}</span>
+                  </div>
+
+                  <div className="flex gap-2 justify-end pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20 hover:border-destructive/30"
+                      onClick={() => handleReject(a.id, a.lotNumber)}
+                    >
+                      Reject Bypass
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8 text-xs bg-gradient-primary text-white"
+                      onClick={() => handleApprove(a)}
+                    >
+                      Approve Bypass
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {approvals.length === 0 && (
+                <div className="text-sm text-muted-foreground text-center py-8 italic flex flex-col items-center gap-2">
+                  <CheckCircle2 className="h-8 w-8 text-success animate-bounce" />
+                  <span>All approval queues cleared! No pending bypass requests.</span>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </AppLayout>
   );
 }

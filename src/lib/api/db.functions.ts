@@ -115,13 +115,15 @@ export const getProductionRecords = createServerFn({ method: "POST" })
       q: z.string().optional(),
       line: z.string().optional(),
       status: z.string().optional(),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
       page: z.number().default(1),
       perPage: z.number().default(10),
     })
   )
   .handler(async ({ data }) => {
     const p = await getPool();
-    const { q, line, status, page, perPage } = data;
+    const { q, line, status, startDate, endDate, page, perPage } = data;
     const offset = (page - 1) * perPage;
 
     let whereClause = "WHERE 1=1";
@@ -134,6 +136,14 @@ export const getProductionRecords = createServerFn({ method: "POST" })
     if (status && status !== "all") {
       whereClause += " AND status = ?";
       params.push(status);
+    }
+    if (startDate) {
+      whereClause += " AND date >= ?";
+      params.push(startDate);
+    }
+    if (endDate) {
+      whereClause += " AND date <= ?";
+      params.push(endDate);
     }
     if (q) {
       whereClause += " AND (part_number LIKE ? OR product_name LIKE ?)";
@@ -504,6 +514,60 @@ export const getAlerts = createServerFn({ method: "GET" })
     } catch (e) {
       console.error("Database alerts query error:", e);
       return [];
+    }
+  });
+
+// 11. GET ACTIVE PRODUCTION LINES
+export const getActiveLines = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const p = await getPool();
+    try {
+      const [rows] = await p.query<any>("SELECT id, name FROM production_lines WHERE active = 1");
+      return rows;
+    } catch (e) {
+      console.error("Database active lines query error:", e);
+      return [];
+    }
+  });
+
+// 12. UPDATE PRODUCTION RECORD
+export const updateProductionRecord = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string().min(1),
+      quantity: z.number(),
+      line: z.string().min(1),
+      operator: z.string().min(1),
+      status: z.string().min(1),
+    })
+  )
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    const { id, quantity, line, operator, status } = data;
+    try {
+      await p.query(
+        "UPDATE production_records SET quantity = ?, line = ?, operator = ?, status = ? WHERE id = ?",
+        [quantity, line, operator, status, id]
+      );
+      return { success: true };
+    } catch (e) {
+      console.error("Database update error:", e);
+      return { success: false };
+    }
+  });
+
+// 13. DELETE PRODUCTION RECORD
+export const deleteProductionRecord = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ id: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    const { id } = data;
+    try {
+      await p.query("DELETE FROM production_records WHERE id = ?", [id]);
+      return { success: true };
+    } catch (e) {
+      console.error("Database delete error:", e);
+      return { success: false };
     }
   });
 

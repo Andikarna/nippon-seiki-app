@@ -29,7 +29,7 @@ export const ROLE_PERMISSIONS: Record<Role, string[]> = {
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, group: "Main" },
   { label: "Production Data", to: "/production", icon: Factory, group: "Production" },
-  { label: "Part Input", to: "/part-input", icon: PackagePlus, group: "Production" },
+  { label: "Part In", to: "/part-input", icon: PackagePlus, group: "Production" },
   { label: "FIFO Check", to: "/fifo", icon: ListChecks, group: "Production" },
   { label: "Part Out", to: "/part-out", icon: PackageMinus, group: "Production" },
   { label: "Reports", to: "/reports", icon: Printer, group: "Reports" },
