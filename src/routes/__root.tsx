@@ -87,6 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -116,11 +117,7 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
-<<<<<<< HEAD
-=======
 import { Toaster } from "@/components/ui/sonner";
-
->>>>>>> origin/connection-database
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -128,10 +125,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
-<<<<<<< HEAD
-=======
       <Toaster />
->>>>>>> origin/connection-database
     </QueryClientProvider>
   );
 }

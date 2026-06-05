@@ -14,12 +14,9 @@ import {
 import { ScanLine, Save, Send, CheckCircle2, Package, Clock, Layers } from "lucide-react";
 import { productionLines } from "@/lib/mock-data";
 import { useState } from "react";
-<<<<<<< HEAD
-=======
 import { addProductionRecord } from "@/lib/api/db.functions";
 import { useUser } from "@/lib/auth";
 import { toast } from "sonner";
->>>>>>> origin/connection-database
 
 export const Route = createFileRoute("/part-input")({
   head: () => ({ meta: [{ title: "Part Input — NPMS" }] }),
@@ -27,52 +24,63 @@ export const Route = createFileRoute("/part-input")({
 });
 
 function PartInput() {
-<<<<<<< HEAD
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    barcode: "", part: "SC-425-25", product: "Speedometer Sub-Assy",
-    line: "Line A1", qty: "120", lot: "LOT-202511025", date: new Date().toISOString().slice(0, 10),
-  });
-
-=======
   const user = useUser();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     barcode: "",
-    part: "SC-425-25",
-    product: "Speedometer Sub-Assy",
-    line: "Line A1",
-    qty: "120",
-    lot: "LOT-202511025",
+    part: "K18H",
+    product: "SS COMP K18H Sub-Assy",
+    line: "SC-1",
+    qty: "400",
+    lot: "SC1 126-7",
     date: new Date().toISOString().slice(0, 10),
   });
 
   // Automatically update part & product name when barcodes are scanned
   const handleBarcodeChange = (val: string) => {
     // Mock auto-fill logic for barcodes
-    let part = "SC-425-25";
-    let product = "Speedometer Sub-Assy";
-    let qty = "120";
+    let part = "K18H";
+    let product = "SS COMP K18H Sub-Assy";
+    let qty = "400";
 
-    if (val.includes("SC-426")) {
-      part = "SC-426-21";
-      product = "Cluster Sub-Assy";
-      qty = "150";
-    } else if (val.includes("SC-427")) {
-      part = "SC-427-22";
-      product = "Tachometer Assy";
-      qty = "80";
-    } else if (val.includes("SC-428")) {
-      part = "SC-428-23";
-      product = "Indicator Unit";
+    const normalizedVal = val.toUpperCase().trim();
+
+    if (normalizedVal.includes("K84A")) {
+      part = "K84A";
+      product = "SS COMP K84A Sub-Assy";
+      qty = "512";
+    } else if (normalizedVal.includes("KRHW")) {
+      part = "KRHW";
+      product = "SS COMP KRHW Sub-Assy";
       qty = "200";
+    } else if (normalizedVal.includes("XD 831") || normalizedVal.includes("XD831")) {
+      part = "XD 831";
+      product = "SS COMP XD 831 Sub-Assy";
+      qty = "41";
+    } else if (normalizedVal.includes("1PA")) {
+      part = "1PA";
+      product = "SS COMP 1PA Sub-Assy";
+      qty = "19";
+    } else if (normalizedVal.includes("1WD")) {
+      part = "1WD";
+      product = "SS COMP 1WD Sub-Assy";
+      qty = "100";
+    } else if (normalizedVal.includes("KYEG")) {
+      part = "KYEG";
+      product = "SS COMP KYEG Sub-Assy";
+      qty = "150";
+    } else if (normalizedVal.includes("K45A")) {
+      part = "K45A";
+      product = "SS COMP K45A Sub-Assy";
+      qty = "250";
     }
 
-    // Auto-generate lot from scan
-    const lotNum = val.trim().startsWith("LOT-") 
-      ? val.trim() 
-      : `LOT-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, "0")}${String(Math.floor(100 + Math.random() * 900))}`;
+    // Auto-generate lot from scan matching Excel format: SC1 126-xx
+    const counter = Math.floor(10 + Math.random() * 89);
+    const lotNum = (normalizedVal.startsWith("SC1") || normalizedVal.startsWith("LOT"))
+      ? normalizedVal
+      : `SC1 126-${counter}`;
 
     setForm({
       ...form,
@@ -126,8 +134,6 @@ function PartInput() {
       setSubmitting(false);
     }
   };
-
->>>>>>> origin/connection-database
   return (
     <AppLayout title="Part Input" subtitle="Quickly record Sub-Assy and Assy production transactions.">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -154,52 +160,8 @@ function PartInput() {
               <Input
                 autoFocus
                 value={form.barcode}
-<<<<<<< HEAD
-                onChange={(e) => setForm({ ...form, barcode: e.target.value })}
-                placeholder="Scan or enter barcode..."
-                className="mt-4 h-12 text-base font-mono bg-background"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Part Number</Label>
-                <Input value={form.part} onChange={(e) => setForm({ ...form, part: e.target.value })} className="font-mono h-11" />
-              </div>
-              <div className="space-y-2">
-                <Label>Product Name</Label>
-                <Input value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} className="h-11" />
-              </div>
-              <div className="space-y-2">
-                <Label>Production Line</Label>
-                <Select value={form.line} onValueChange={(v) => setForm({ ...form, line: v })}>
-                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                  <SelectContent>{productionLines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Quantity</Label>
-                <Input type="number" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} className="h-11 text-lg font-semibold tabular-nums" />
-              </div>
-              <div className="space-y-2">
-                <Label>Lot Number</Label>
-                <Input value={form.lot} onChange={(e) => setForm({ ...form, lot: e.target.value })} className="font-mono h-11" />
-              </div>
-              <div className="space-y-2">
-                <Label>Production Date</Label>
-                <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="h-11" />
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 pt-2">
-              <Button variant="outline" className="gap-2 sm:flex-1 h-11"><Save className="h-4 w-4" />Save Draft</Button>
-              <Button onClick={() => setOpen(true)} className="gap-2 sm:flex-1 h-11 bg-gradient-primary shadow-glow">
-                <Send className="h-4 w-4" />Submit Transaction
-              </Button>
-            </div>
-=======
                 onChange={(e) => handleBarcodeChange(e.target.value)}
-                placeholder="Scan or enter barcode (e.g. SC-426, SC-427, LOT-123)..."
+                placeholder="Scan or enter barcode (e.g. K18H, K84A, SC1 126-7)..."
                 className="mt-4 h-12 text-base font-mono bg-background"
                 disabled={submitting}
               />
@@ -248,7 +210,6 @@ function PartInput() {
                 </Button>
               </div>
             </form>
->>>>>>> origin/connection-database
           </CardContent>
         </Card>
 
@@ -260,13 +221,8 @@ function PartInput() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <Row icon={Package} label="Product" value={form.product} />
-<<<<<<< HEAD
-              <Row icon={Layers} label="Category" value="Sub-Assy" />
-              <Row icon={Clock} label="Last produced" value="Today · 07:42" />
-=======
               <Row icon={Layers} label="Category" value={form.product.toLowerCase().includes("sub") ? "Sub-Assy" : "Assy"} />
               <Row icon={Clock} label="Last produced" value="Today · Active" />
->>>>>>> origin/connection-database
               <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-xs text-success flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" /> Validation passed — ready to submit.
               </div>
@@ -279,15 +235,9 @@ function PartInput() {
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3 text-sm">
               {[
-<<<<<<< HEAD
-                { l: "Submitted", v: "24" },
-                { l: "Drafts", v: "3" },
-                { l: "Approved", v: "21" },
-=======
                 { l: "Submitted", v: "Active" },
                 { l: "Drafts", v: "0" },
                 { l: "Approved", v: "Live" },
->>>>>>> origin/connection-database
                 { l: "Rejected", v: "0" },
               ].map((s) => (
                 <div key={s.l} className="rounded-lg bg-muted/50 p-3">
@@ -308,11 +258,7 @@ function PartInput() {
             </div>
             <DialogTitle className="text-center">Transaction Submitted</DialogTitle>
             <DialogDescription className="text-center">
-<<<<<<< HEAD
-              Part {form.part} ({form.qty} pcs) recorded on {form.line}. The supervisor will be notified for approval.
-=======
               Part {form.part} ({form.qty} pcs) recorded on {form.line}. The transaction has been persisted in MySQL.
->>>>>>> origin/connection-database
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
