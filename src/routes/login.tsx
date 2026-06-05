@@ -56,7 +56,7 @@ function LoginPage() {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const loggedIn = loginUser(email, password);
+    const loggedIn = await loginUser(email, password);
     setLoading(false);
 
     if (loggedIn) {
@@ -79,7 +79,7 @@ function LoginPage() {
     // Simulated authenticating state
     await new Promise((resolve) => setTimeout(resolve, 600));
 
-    const loggedIn = loginUser(demoEmail, "demo123");
+    const loggedIn = await loginUser(demoEmail, "123456");
     setLoading(false);
     setSelectedRole(null);
 

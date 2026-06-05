@@ -45,25 +45,17 @@ export function setUser(u: User | null) {
   window.dispatchEvent(new Event("npms-auth"));
 }
 
-export function loginUser(email: string, password?: string): User | null {
-  const found = DEMO_USERS.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-  if (found) {
-    setUser(found);
-    return found;
-  }
+import { authenticateUser } from "./api/db.functions";
 
-  // Fallback for custom user logins
-  if (email && email.includes("@")) {
-    const name = email.split("@")[0]
-      .replace(/[._-]/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
-    const newUser: User = {
-      name,
-      email: email.trim(),
-      role: "operator",
-    };
-    setUser(newUser);
-    return newUser;
+export async function loginUser(email: string, password?: string): Promise<User | null> {
+  try {
+    const res = await authenticateUser({ data: { email, password } });
+    if (res.success && res.user) {
+      setUser(res.user);
+      return res.user;
+    }
+  } catch (e) {
+    console.error("Auth server function error:", e);
   }
   return null;
 }
