@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-
-export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "NPMS" }] }),
-  component: () => <Navigate to="/dashboard" />,
-});
-=======
 import { useState, useEffect } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { loginUser, getUser, DEMO_USERS, useUser } from "@/lib/auth";
@@ -144,14 +136,14 @@ function LoginPage() {
         {/* Large flowing blur background nodes */}
         <div className="absolute -top-[30%] -left-[20%] w-[70%] h-[70%] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
         <div className="absolute -bottom-[30%] -right-[20%] w-[70%] h-[70%] rounded-full bg-primary-dark/10 blur-[120px] pointer-events-none" />
-        <div className="absolute top-[40%] right-[10%] w-[300px] h-[300px] rounded-full bg-orange-500/5 blur-[80px] pointer-events-none" />
+        <div className="absolute top-[40%] right-[10%] w-[300px] h-[300px] rounded-full bg-green-500/5 blur-[80px] pointer-events-none" />
       </div>
 
       <div className="relative z-10 w-full max-w-[480px] py-12">
         {/* Logo and Header */}
         <div className="flex flex-col items-center mb-8 text-center animate-fade-in">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-primary grid place-items-center text-primary-foreground font-bold shadow-glow text-xl mb-4">
-            N
+          <div className="bg-white p-3 rounded-2xl flex items-center justify-center shadow-glow mb-4 max-w-[220px]">
+            <img src="/logo.png" alt="Nippon Seiki Indonesia" className="h-10 w-auto object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2 justify-center">
             <Factory className="h-5 w-5 text-primary" /> NPMS
@@ -302,4 +294,3 @@ function LoginPage() {
     </div>
   );
 }
->>>>>>> origin/connection-database

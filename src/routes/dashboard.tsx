@@ -11,28 +11,6 @@ import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip,
 } from "recharts";
-<<<<<<< HEAD
-import { dailyTrend, fifoPerformance, activities, alerts, productionLines } from "@/lib/mock-data";
-
-export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — NPMS" }] }),
-  component: Dashboard,
-});
-
-const kpis = [
-  { label: "Today's Production", value: "2,847", delta: "+12.4%", up: true, icon: Activity, hint: "vs yesterday" },
-  { label: "Total Parts In", value: "1,524", delta: "+8.1%", up: true, icon: PackagePlus, hint: "Sub-Assy" },
-  { label: "Total Parts Out", value: "1,318", delta: "-2.3%", up: false, icon: PackageMinus, hint: "Assy line" },
-  { label: "FIFO Compliance", value: "98.4%", delta: "+1.2%", up: true, icon: Boxes, hint: "7-day avg" },
-];
-
-function Dashboard() {
-  return (
-    <AppLayout title="Dashboard" subtitle="Hey, Afifi Rouf — you have 3 production tasks today.">
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {kpis.map((k) => (
-=======
 import { fifoPerformance } from "@/lib/mock-data";
 import { useUser } from "@/lib/auth";
 import { getDashboardData } from "@/lib/api/db.functions";
@@ -64,7 +42,6 @@ function Dashboard() {
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpiCards.map((k) => (
->>>>>>> origin/connection-database
           <Card key={k.label} className="border-0 shadow-soft hover:shadow-elevated transition-shadow">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
@@ -101,25 +78,25 @@ function Dashboard() {
               <AreaChart data={dailyTrend} margin={{ left: -10, right: 8, top: 8 }}>
                 <defs>
                   <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.705 0.187 47.604)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="oklch(0.705 0.187 47.604)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="oklch(0.61 0.20 144)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="oklch(0.61 0.20 144)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="oklch(0.628 0.207 38.5)" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="oklch(0.628 0.207 38.5)" stopOpacity={0} />
+                    <stop offset="0%" stopColor="oklch(0.51 0.18 142)" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="oklch(0.51 0.18 142)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12 }} />
-                <Area type="monotone" dataKey="subAssy" stroke="oklch(0.705 0.187 47.604)" fill="url(#g1)" strokeWidth={2} />
-                <Area type="monotone" dataKey="assy" stroke="oklch(0.628 0.207 38.5)" fill="url(#g2)" strokeWidth={2} />
+                <Area type="monotone" dataKey="subAssy" stroke="oklch(0.61 0.20 144)" fill="url(#g1)" strokeWidth={2} />
+                <Area type="monotone" dataKey="assy" stroke="oklch(0.51 0.18 142)" fill="url(#g2)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
             <div className="flex gap-6 mt-3 text-xs">
               <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-primary" />Sub-Assy</span>
-              <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[oklch(0.628_0.207_38.5)]" />Assy</span>
+              <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-[oklch(0.51_0.18_142)]" />Assy</span>
             </div>
           </CardContent>
         </Card>
@@ -140,7 +117,7 @@ function Dashboard() {
                 <XAxis dataKey="week" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis domain={[85, 100]} stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12 }} />
-                <Line type="monotone" dataKey="rate" stroke="oklch(0.705 0.187 47.604)" strokeWidth={2.5} dot={{ r: 3, fill: "oklch(0.705 0.187 47.604)" }} />
+                <Line type="monotone" dataKey="rate" stroke="oklch(0.61 0.20 144)" strokeWidth={2.5} dot={{ r: 3, fill: "oklch(0.61 0.20 144)" }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -161,8 +138,8 @@ function Dashboard() {
                 <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12 }} />
-                <Bar dataKey="subAssy" fill="oklch(0.705 0.187 47.604)" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="assy" fill="oklch(0.628 0.207 38.5)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="subAssy" fill="oklch(0.61 0.20 144)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="assy" fill="oklch(0.51 0.18 142)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -174,17 +151,6 @@ function Dashboard() {
             <p className="text-xs text-muted-foreground">Live status</p>
           </CardHeader>
           <CardContent className="space-y-3">
-<<<<<<< HEAD
-            {productionLines.map((l, i) => {
-              const status = i === 1 ? "idle" : i === 4 ? "warning" : "running";
-              const pct = [88, 0, 76, 92, 64][i];
-              return (
-                <div key={l}>
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${status === "running" ? "bg-success animate-pulse" : status === "warning" ? "bg-warning" : "bg-muted-foreground"}`} />
-                      <span className="font-medium">{l}</span>
-=======
             {productionLines.map((l: any, i: number) => {
               const lineId = l.id || l;
               const lineName = l.name || l;
@@ -197,7 +163,6 @@ function Dashboard() {
                     <div className="flex items-center gap-2">
                       <span className={`h-2 w-2 rounded-full ${status === "running" ? "bg-success animate-pulse" : status === "warning" ? "bg-warning" : "bg-muted-foreground"}`} />
                       <span className="font-medium">{lineName}</span>
->>>>>>> origin/connection-database
                     </div>
                     <span className="text-xs text-muted-foreground">{pct}%</span>
                   </div>

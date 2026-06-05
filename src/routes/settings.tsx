@@ -12,10 +12,6 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-<<<<<<< HEAD
-import { Plus, MoreHorizontal, ShieldCheck } from "lucide-react";
-import { productionLines } from "@/lib/mock-data";
-=======
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -27,34 +23,19 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSettingsData, addSettingUser, addSettingLine } from "@/lib/api/db.functions";
 import { toast } from "sonner";
->>>>>>> origin/connection-database
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — NPMS" }] }),
   component: SettingsPage,
 });
 
-<<<<<<< HEAD
-const users = [
-  { name: "Afifi Rouf", email: "operator@ins.co.id", role: "Operator", line: "Line A1", active: true },
-  { name: "Bayu Saputra", email: "bayu@ins.co.id", role: "Operator", line: "Line B1", active: true },
-  { name: "Sari Supervisor", email: "supervisor@ins.co.id", role: "Supervisor", line: "All", active: true },
-  { name: "Andi Manager", email: "manager@ins.co.id", role: "Manager", line: "All", active: true },
-  { name: "Dimas Pratama", email: "dimas@ins.co.id", role: "Operator", line: "Line C1", active: false },
-];
-
-const roles = [
-=======
 const rolesList = [
->>>>>>> origin/connection-database
   { name: "Operator", perms: ["Input Production", "Part Out", "FIFO Check"], count: 24 },
   { name: "Supervisor", perms: ["Approve Transactions", "Review FIFO Violations", "Generate Reports"], count: 6 },
   { name: "Manager", perms: ["Access Analytics", "Access All Reports", "Manage Users"], count: 2 },
 ];
 
 function SettingsPage() {
-<<<<<<< HEAD
-=======
   const queryClient = useQueryClient();
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [lineDialogOpen, setLineDialogOpen] = useState(false);
@@ -130,8 +111,6 @@ function SettingsPage() {
       setLineLoading(false);
     }
   };
-
->>>>>>> origin/connection-database
   return (
     <AppLayout title="Settings" subtitle="Manage users, roles, production lines, and preferences.">
       <Tabs defaultValue="users">
@@ -142,10 +121,7 @@ function SettingsPage() {
           <TabsTrigger value="prefs">Preferences</TabsTrigger>
         </TabsList>
 
-<<<<<<< HEAD
-=======
         {/* USERS TAB */}
->>>>>>> origin/connection-database
         <TabsContent value="users" className="mt-4">
           <Card className="border-0 shadow-soft">
             <CardHeader className="flex-row items-center justify-between">
@@ -153,9 +129,6 @@ function SettingsPage() {
                 <CardTitle className="text-base">Users</CardTitle>
                 <p className="text-xs text-muted-foreground">{users.length} active users in the system</p>
               </div>
-<<<<<<< HEAD
-              <Button className="gap-2 bg-gradient-primary"><Plus className="h-4 w-4" />Add user</Button>
-=======
               <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2 bg-gradient-primary"><Plus className="h-4 w-4" />Add user</Button>
@@ -198,7 +171,6 @@ function SettingsPage() {
                   </form>
                 </DialogContent>
               </Dialog>
->>>>>>> origin/connection-database
             </CardHeader>
             <CardContent>
               <div className="rounded-xl border overflow-hidden">
@@ -214,29 +186,6 @@ function SettingsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-<<<<<<< HEAD
-                    {users.map((u) => (
-                      <TableRow key={u.email}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-gradient-primary grid place-items-center text-white text-xs font-semibold">{u.name[0]}</div>
-                            <span className="font-medium">{u.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
-                        <TableCell><Badge variant="outline">{u.role}</Badge></TableCell>
-                        <TableCell className="text-sm">{u.line}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={u.active ? "bg-success/15 text-success border-success/20" : "bg-muted text-muted-foreground"}>
-                            {u.active ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-=======
                     {isLoading ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-sm">
@@ -267,7 +216,6 @@ function SettingsPage() {
                         </TableRow>
                       ))
                     )}
->>>>>>> origin/connection-database
                   </TableBody>
                 </Table>
               </div>
@@ -275,16 +223,10 @@ function SettingsPage() {
           </Card>
         </TabsContent>
 
-<<<<<<< HEAD
-        <TabsContent value="roles" className="mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {roles.map((r) => (
-=======
         {/* ROLES TAB */}
         <TabsContent value="roles" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {rolesList.map((r) => (
->>>>>>> origin/connection-database
               <Card key={r.name} className="border-0 shadow-soft">
                 <CardHeader className="flex-row items-start justify-between pb-2">
                   <div className="flex items-center gap-2">
@@ -301,40 +243,18 @@ function SettingsPage() {
                       <span className="h-1.5 w-1.5 rounded-full bg-primary" />{p}
                     </div>
                   ))}
-<<<<<<< HEAD
-                  <Button variant="outline" size="sm" className="mt-3 w-full">Edit permissions</Button>
-=======
                   <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => toast.info("Role permissions modification is locked.")}>Edit permissions</Button>
->>>>>>> origin/connection-database
                 </CardContent>
               </Card>
             ))}
           </div>
         </TabsContent>
 
-<<<<<<< HEAD
-=======
         {/* LINES TAB */}
->>>>>>> origin/connection-database
         <TabsContent value="lines" className="mt-4">
           <Card className="border-0 shadow-soft">
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle className="text-base">Production Lines</CardTitle>
-<<<<<<< HEAD
-              <Button className="gap-2 bg-gradient-primary"><Plus className="h-4 w-4" />Add line</Button>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {productionLines.map((l, i) => (
-                <div key={l} className="rounded-xl border p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold">{l}</div>
-                    <Badge variant="outline" className="bg-success/15 text-success border-success/20">Active</Badge>
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">Capacity: {120 + i * 20} units/hr</div>
-                  <div className="mt-2 text-xs text-muted-foreground">Shifts: 3 · Operators: {4 + i}</div>
-                </div>
-              ))}
-=======
               <Dialog open={lineDialogOpen} onOpenChange={setLineDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="gap-2 bg-gradient-primary"><Plus className="h-4 w-4" />Add line</Button>
@@ -395,15 +315,11 @@ function SettingsPage() {
                   </div>
                 ))
               )}
->>>>>>> origin/connection-database
             </CardContent>
           </Card>
         </TabsContent>
 
-<<<<<<< HEAD
-=======
         {/* PREFERENCES TAB */}
->>>>>>> origin/connection-database
         <TabsContent value="prefs" className="mt-4">
           <Card className="border-0 shadow-soft max-w-2xl">
             <CardHeader><CardTitle className="text-base">Preferences</CardTitle></CardHeader>
@@ -419,20 +335,12 @@ function SettingsPage() {
                     <Label className="text-sm">{p.l}</Label>
                     <p className="text-xs text-muted-foreground mt-0.5">{p.d}</p>
                   </div>
-<<<<<<< HEAD
-                  <Switch defaultChecked={p.on} />
-=======
                   <Switch defaultChecked={p.on} onCheckedChange={() => toast.success("Preference updated.")} />
->>>>>>> origin/connection-database
                 </div>
               ))}
               <div className="space-y-2 pt-2 border-t">
                 <Label>Default shift</Label>
-<<<<<<< HEAD
-                <Input defaultValue="Shift 1 · 07:00 – 15:00" />
-=======
                 <Input defaultValue="Shift 1 · 07:00 – 15:00" onChange={() => {}} />
->>>>>>> origin/connection-database
               </div>
             </CardContent>
           </Card>

@@ -494,3 +494,16 @@ export const authenticateUser = createServerFn({ method: "POST" })
     return { success: false };
   });
 
+// 10. GET RECENT ALERTS
+export const getAlerts = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const p = await getPool();
+    try {
+      const [alertRows] = await p.query<any>("SELECT id, title, `desc`, severity FROM alerts ORDER BY id DESC LIMIT 5");
+      return alertRows;
+    } catch (e) {
+      console.error("Database alerts query error:", e);
+      return [];
+    }
+  });
+
