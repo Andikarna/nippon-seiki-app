@@ -59,11 +59,29 @@ async function setupTables(p: mysql.Pool) {
       await p.query("ALTER TABLE users ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT '123456'");
       console.log("MySQL: Verified or added password column to users table.");
     } catch (err: any) {
-      // Ignore ER_DUP_FIELDNAME (1060) which means column already exists
       if (err.errno !== 1060) {
         console.error("MySQL: Error running ALTER TABLE for users:", err);
       }
     }
+
+    // Ensure active column exists on existing users table (migration)
+    try {
+      await p.query("ALTER TABLE users ADD COLUMN active TINYINT(1) NOT NULL DEFAULT 1");
+      console.log("MySQL: Verified or added active column to users table.");
+    } catch (err: any) {
+      if (err.errno !== 1060) {
+        console.error("MySQL: Error running ALTER TABLE for users (active):", err);
+      }
+    }
+
+    // Migrate: rename generic role-based names to natural full names
+    await p.query(
+      "UPDATE users SET name = 'Sari Handayani' WHERE email = 'supervisor@ins.co.id' AND name = 'Sari Supervisor'"
+    );
+    await p.query(
+      "UPDATE users SET name = 'Andi Firmansyah' WHERE email = 'manager@ins.co.id' AND name = 'Andi Manager'"
+    );
+
 
     // 2. production_lines
     await p.query(`
@@ -133,8 +151,8 @@ async function setupTables(p: mysql.Pool) {
       const demoUsers = [
         ["Afifi Rouf", "operator@ins.co.id", "operator", "123456"],
         ["Bayu Saputra", "bayu@ins.co.id", "operator", "123456"],
-        ["Sari Supervisor", "supervisor@ins.co.id", "supervisor", "123456"],
-        ["Andi Manager", "manager@ins.co.id", "manager", "123456"],
+        ["Sari Handayani", "supervisor@ins.co.id", "supervisor", "123456"],
+        ["Andi Firmansyah", "manager@ins.co.id", "manager", "123456"],
         ["Dimas Pratama", "dimas@ins.co.id", "operator", "123456"],
       ];
       await p.query("INSERT INTO users (name, email, role, password) VALUES ?", [demoUsers]);

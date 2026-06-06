@@ -17,12 +17,12 @@ export const DEMO_USERS: User[] = [
     role: "operator",
   },
   {
-    name: "Sari Supervisor",
+    name: "Sari Handayani",
     email: "supervisor@ins.co.id",
     role: "supervisor",
   },
   {
-    name: "Andi Manager",
+    name: "Andi Firmansyah",
     email: "manager@ins.co.id",
     role: "manager",
   },

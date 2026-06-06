@@ -11,10 +11,11 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ScanLine, Save, Send, CheckCircle2, Package, Clock, Layers, Trash2 } from "lucide-react";
+import { ScanLine, Save, Send, CheckCircle2, Package, Clock, Layers, Trash2, Printer as PrinterIcon } from "lucide-react";
 import { useState } from "react";
 import { addProductionRecord, getActiveLines } from "@/lib/api/db.functions";
 import { useUser } from "@/lib/auth";
+import { getPref } from "@/lib/preferences";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 
@@ -173,6 +174,15 @@ function PartInput() {
         // Reset form barcode
         setForm(f => ({ ...f, barcode: "" }));
         toast.success("Transaction submitted to database.");
+
+        // Auto-print labels if preference is ON
+        if (getPref("autoPrintLabels")) {
+          toast.info("Auto-print triggered.", {
+            description: `Printing QR label for ${form.part} (${form.qty} pcs) · ${form.lot}`,
+            icon: <PrinterIcon className="h-4 w-4" />,
+            duration: 4000,
+          });
+        }
       }
     } catch (err) {
       toast.error("Failed to submit production record.");
@@ -269,7 +279,7 @@ function PartInput() {
             <CardContent className="space-y-3 text-sm">
               <Row icon={Package} label="Product" value={form.product} />
               <Row icon={Layers} label="Category" value={form.product.toLowerCase().includes("sub") ? "Sub-Assy" : "Assy"} />
-              <Row icon={Clock} label="Last produced" value="Today · Active" />
+              <Row icon={Clock} label="Default shift" value={getPref("defaultShift")} />
               <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-xs text-success flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" /> Validation passed — ready to submit.
               </div>

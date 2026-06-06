@@ -385,7 +385,7 @@ export const getSettingsData = createServerFn({ method: "GET" })
     const p = await getPool();
 
     // Fetch users
-    const [users] = await p.query<any>("SELECT name, email, role, 'Line A1' as line, 1 as active FROM users");
+    const [users] = await p.query<any>("SELECT name, email, role, active FROM users");
     const usersMapped = users.map((u: any) => ({
       name: u.name,
       email: u.email,
@@ -447,6 +447,61 @@ export const addSettingLine = createServerFn({ method: "POST" })
       "INSERT INTO production_lines (id, name, capacity, shifts, operators) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, capacity = ?, shifts = ?, operators = ?",
       [id, name, capacity, shifts, operators, name, capacity, shifts, operators]
     );
+    return { success: true };
+  });
+
+export const updateSettingUser = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      email: z.string().email(),
+      name: z.string().min(1),
+      role: z.string().min(1),
+      active: z.boolean(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    const { email, name, role, active } = data;
+    await p.query(
+      "UPDATE users SET name = ?, role = ?, active = ? WHERE email = ?",
+      [name, role.toLowerCase(), active ? 1 : 0, email]
+    );
+    return { success: true };
+  });
+
+export const deleteSettingUser = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ email: z.string().email() }))
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    await p.query("DELETE FROM users WHERE email = ?", [data.email]);
+    return { success: true };
+  });
+
+export const updateSettingLine = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      capacity: z.number(),
+      shifts: z.number(),
+      operators: z.number(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    const { id, name, capacity, shifts, operators } = data;
+    await p.query(
+      "UPDATE production_lines SET name = ?, capacity = ?, shifts = ?, operators = ? WHERE id = ?",
+      [name, capacity, shifts, operators, id]
+    );
+    return { success: true };
+  });
+
+export const deleteSettingLine = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ id: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    await p.query("DELETE FROM production_lines WHERE id = ?", [data.id]);
     return { success: true };
   });
 

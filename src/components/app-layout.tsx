@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { setUser, useUser, getUser, type Role } from "@/lib/auth";
+import { loadRolePermissions, getAllowedRoutes } from "@/lib/permissions";
+import { loadPreferences, applyCompactDensity } from "@/lib/preferences";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,11 +22,7 @@ import { getAlerts } from "@/lib/api/db.functions";
 const IDLE_TIMEOUT = 1 * 60 * 60 * 1000; // 1 hour in milliseconds
 const LAST_ACTIVE_KEY = "npms_last_active";
 
-export const ROLE_PERMISSIONS: Record<Role, string[]> = {
-  operator: ["/dashboard", "/part-input", "/fifo", "/part-out"],
-  supervisor: ["/dashboard", "/production", "/fifo", "/reports"],
-  manager: ["/dashboard", "/production", "/reports", "/settings"],
-};
+// ROLE_PERMISSIONS is now driven by lib/permissions.ts (dynamic, persisted to localStorage)
 
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, group: "Main" },
@@ -41,17 +39,41 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
   const user = useUser();
   const navigate = useNavigate();
   const [dark, setDark] = useState(false);
+  // Reactive permissions — re-reads whenever Settings saves changes
+  const [permsVersion, setPermsVersion] = useState(0);
+  // Reactive preferences
+  const [prefs, setPrefs] = useState(() => loadPreferences());
 
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["headerAlerts"],
     queryFn: () => getAlerts(),
-    refetchInterval: 10000,
+    // Poll only when real-time notifications are enabled
+    refetchInterval: prefs.realtimeNotifications ? 10000 : false,
   });
 
   useEffect(() => {
     const saved = localStorage.getItem("npms_theme") === "dark";
     setDark(saved);
     document.documentElement.classList.toggle("dark", saved);
+    // Apply saved compact density on mount
+    applyCompactDensity(loadPreferences().compactDensity);
+  }, []);
+
+  // Listen for preference changes from Settings page
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const updated = (e as CustomEvent).detail;
+      if (updated) setPrefs(updated);
+    };
+    window.addEventListener("npms-preferences-changed", handler);
+    return () => window.removeEventListener("npms-preferences-changed", handler);
+  }, []);
+
+  // Listen for permission changes fired by the Settings page
+  useEffect(() => {
+    const handler = () => setPermsVersion((v) => v + 1);
+    window.addEventListener("npms-permissions-changed", handler);
+    return () => window.removeEventListener("npms-permissions-changed", handler);
   }, []);
 
   // Verify authentication
@@ -121,9 +143,12 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
     );
   }
 
-  const allowedNav = nav.filter((n) => ROLE_PERMISSIONS[user.role as Role]?.includes(n.to));
+  // Derive allowed routes from stored permissions (reactive to permsVersion)
+  const storedPerms = loadRolePermissions();
+  const allowedRoutes = user ? getAllowedRoutes(user.role as Role, storedPerms) : [];
+  const allowedNav = nav.filter((n) => allowedRoutes.includes(n.to));
   const groups = Array.from(new Set(allowedNav.map((n) => n.group)));
-  const isAllowed = ROLE_PERMISSIONS[user.role as Role]?.includes(path) || path === "/";
+  const isAllowed = allowedRoutes.includes(path) || path === "/";
 
   return (
     <div className="flex min-h-screen bg-muted/40">
