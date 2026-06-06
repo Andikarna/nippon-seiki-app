@@ -16,12 +16,8 @@ export default defineConfig({
       disableCsrfMiddlewareWarning: true,
     },
   },
-  // Force enable nitro build plugin since this is not running in Lovable cloud
-  nitro: true,
-  vite: {
-    // Nitro preset for Vercel serverless deployment
-    define: {
-      __NITRO_PRESET__: JSON.stringify("vercel"),
-    },
-  },
+  // Configure Nitro plugin for Vercel serverless deployment
+  nitro: {
+    preset: "vercel"
+  }
 });
