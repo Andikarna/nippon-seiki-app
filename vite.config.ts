@@ -11,5 +11,17 @@ export default defineConfig({
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // Disable CSRF warning — app uses localStorage-based auth, not cookies
+    serverFns: {
+      disableCsrfMiddlewareWarning: true,
+    },
+  },
+  // Force enable nitro build plugin since this is not running in Lovable cloud
+  nitro: true,
+  vite: {
+    // Nitro preset for Vercel serverless deployment
+    define: {
+      __NITRO_PRESET__: JSON.stringify("vercel"),
+    },
   },
 });

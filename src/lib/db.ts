@@ -144,7 +144,7 @@ async function setupTables(p: mysql.Pool) {
     `);
 
     // --- SEED DATA IF TABLES ARE EMPTY ---
-    
+
     // Seed users
     const [userRows] = await p.query<any>("SELECT COUNT(*) as count FROM users");
     if (userRows[0].count === 0) {
