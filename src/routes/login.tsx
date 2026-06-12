@@ -27,7 +27,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const user = useUser();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,12 +43,12 @@ function LoginPage() {
 
   const handleManualLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      toast.error("Please enter your Email / Employee ID");
+    if (!username.trim()) {
+      toast.error("Harap masukkan Username Anda");
       return;
     }
     if (!password) {
-      toast.error("Please enter your Password");
+      toast.error("Harap masukkan Password Anda");
       return;
     }
 
@@ -56,22 +56,22 @@ function LoginPage() {
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    const loggedIn = await loginUser(email, password);
+    const loggedIn = await loginUser(username, password);
     setLoading(false);
 
     if (loggedIn) {
-      toast.success(`Welcome back, ${loggedIn.name}!`, {
-        description: `Logged in as ${loggedIn.role.toUpperCase()}`,
+      toast.success(`Selamat datang kembali, ${loggedIn.name}!`, {
+        description: `Masuk sebagai ${loggedIn.role.toUpperCase()}`,
       });
       navigate({ to: "/dashboard" });
     } else {
-      toast.error("Authentication failed", {
-        description: "Please use a demo profile or enter a valid email.",
+      toast.error("Autentikasi gagal", {
+        description: "Gunakan profil demo atau masukkan username yang valid.",
       });
     }
   };
 
-  const handleQuickLogin = async (demoEmail: string, role: string) => {
+  const handleQuickLogin = async (demoUsername: string, role: string) => {
     if (loading) return;
     setSelectedRole(role);
     setLoading(true);
@@ -79,24 +79,25 @@ function LoginPage() {
     // Simulated authenticating state
     await new Promise((resolve) => setTimeout(resolve, 600));
 
-    const loggedIn = await loginUser(demoEmail, "123456");
+    const loggedIn = await loginUser(demoUsername, "123456");
     setLoading(false);
     setSelectedRole(null);
 
     if (loggedIn) {
-      toast.success(`Access granted: ${loggedIn.name}`, {
-        description: `Redirecting to ${loggedIn.role.toUpperCase()} workspace...`,
+      toast.success(`Akses diberikan: ${loggedIn.name}`, {
+        description: `Mengarahkan ke workspace ${loggedIn.role.toUpperCase()}...`,
       });
       navigate({ to: "/dashboard" });
     } else {
-      toast.error("Quick login failed");
+      toast.error("Login cepat gagal");
     }
   };
 
   // Icon selector based on demo user role
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case "operator":
+      case "operator_in":
+      case "operator_out":
         return <User className="h-4 w-4" />;
       case "supervisor":
         return <ShieldCheck className="h-4 w-4" />;
@@ -110,7 +111,8 @@ function LoginPage() {
   // Color theme badges based on role
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case "operator":
+      case "operator_in":
+      case "operator_out":
         return "bg-blue-500/10 text-blue-500 border-blue-500/20";
       case "supervisor":
         return "bg-amber-500/10 text-amber-500 border-amber-500/20";
@@ -156,26 +158,26 @@ function LoginPage() {
         {/* Login Card */}
         <Card className="border-0 shadow-2xl bg-slate-900/60 dark:bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl overflow-hidden">
           <CardHeader className="space-y-1 pb-6 border-b border-slate-800/50">
-            <CardTitle className="text-xl font-semibold text-white">Login to Account</CardTitle>
+            <CardTitle className="text-xl font-semibold text-white">Masuk ke Akun</CardTitle>
             <CardDescription className="text-slate-400">
-              Access the manufacturing monitoring and FIFO audit system.
+              Akses sistem monitoring manufaktur dan audit FIFO.
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
             {/* Manual Form */}
             <form onSubmit={handleManualLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-300 text-xs font-semibold tracking-wide uppercase">
-                  Email / Employee ID
+                <Label htmlFor="username" className="text-slate-300 text-xs font-semibold tracking-wide uppercase">
+                  Username
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                   <Input
-                    id="email"
-                    placeholder="operator@ins.co.id"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="username"
+                    placeholder="operator_in"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     disabled={loading}
                     className="pl-9 h-11 bg-slate-950/60 border-slate-800 text-slate-100 placeholder:text-slate-600 focus-visible:ring-primary focus-visible:border-primary focus-visible:ring-1"
                   />
@@ -187,8 +189,8 @@ function LoginPage() {
                   <Label htmlFor="password" className="text-slate-300 text-xs font-semibold tracking-wide uppercase">
                     Password
                   </Label>
-                  <a href="#" className="text-xs text-primary hover:underline" onClick={(e) => { e.preventDefault(); toast.info("Demo mode: Use standard password '123456' or any characters."); }}>
-                    Forgot password?
+                  <a href="#" className="text-xs text-primary hover:underline" onClick={(e) => { e.preventDefault(); toast.info("Mode demo: Gunakan password standar '123456' atau karakter apa pun."); }}>
+                    Lupa password?
                   </a>
                 </div>
                 <div className="relative">
@@ -223,7 +225,7 @@ function LoginPage() {
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 ) : (
                   <>
-                    Sign In <ArrowRight className="h-4 w-4" />
+                    Masuk <ArrowRight className="h-4 w-4" />
                   </>
                 )}
               </Button>
@@ -235,7 +237,7 @@ function LoginPage() {
                 <span className="w-full border-t border-slate-800" />
               </div>
               <span className="relative bg-slate-900 px-3 text-xs text-slate-500 uppercase font-semibold tracking-wider">
-                Quick Access Demo
+                Akses Cepat Demo
               </span>
             </div>
 
@@ -248,7 +250,7 @@ function LoginPage() {
                     key={demo.role}
                     type="button"
                     disabled={loading}
-                    onClick={() => handleQuickLogin(demo.email, demo.role)}
+                    onClick={() => handleQuickLogin(demo.username, demo.role)}
                     className="flex items-center justify-between p-3.5 rounded-xl border border-slate-800/80 bg-slate-950/35 hover:bg-slate-950/80 hover:border-slate-700/80 transition-all text-left group disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
@@ -264,7 +266,7 @@ function LoginPage() {
                           {demo.name}
                         </div>
                         <div className="text-xs text-slate-500 truncate max-w-[200px]">
-                          {demo.email}
+                          @{demo.username}
                         </div>
                       </div>
                     </div>
@@ -285,9 +287,9 @@ function LoginPage() {
 
         {/* Footer Info */}
         <div className="mt-8 text-center text-xs text-slate-600">
-          <p>© 2026 PT. Indonesia Nippon Seiki. All rights reserved.</p>
+          <p>© 2026 PT. Indonesia Nippon Seiki. Hak cipta dilindungi.</p>
           <p className="mt-1.5 text-[11px] text-slate-600/70">
-            For operational support, contact System Administrator.
+            Untuk dukungan operasional, hubungi Administrator Sistem.
           </p>
         </div>
       </div>

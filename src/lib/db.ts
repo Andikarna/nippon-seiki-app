@@ -48,11 +48,38 @@ async function setupTables(p: mysql.Pool) {
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        username VARCHAR(255) UNIQUE NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         role VARCHAR(50) NOT NULL,
-        password VARCHAR(255) NOT NULL DEFAULT '123456'
+        password VARCHAR(255) NOT NULL DEFAULT '123456',
+        active TINYINT(1) NOT NULL DEFAULT 1
       )
     `);
+
+    // Ensure username column exists on existing users table (migration)
+    try {
+      await p.query("ALTER TABLE users ADD COLUMN username VARCHAR(255) NULL");
+      console.log("MySQL: Added username column to users table.");
+      
+      // Update existing users
+      await p.query("UPDATE users SET username = 'operator' WHERE email = 'operator@ins.co.id' AND username IS NULL");
+      await p.query("UPDATE users SET username = 'bayu' WHERE email = 'bayu@ins.co.id' AND username IS NULL");
+      await p.query("UPDATE users SET username = 'supervisor' WHERE email = 'supervisor@ins.co.id' AND username IS NULL");
+      await p.query("UPDATE users SET username = 'manager' WHERE email = 'manager@ins.co.id' AND username IS NULL");
+      await p.query("UPDATE users SET username = 'dimas' WHERE email = 'dimas@ins.co.id' AND username IS NULL");
+      
+      // Fallback for any other user to use prefix of email
+      await p.query("UPDATE users SET username = SUBSTRING_INDEX(email, '@', 1) WHERE username IS NULL");
+      
+      // Enforce not null and unique now that they are populated
+      await p.query("ALTER TABLE users MODIFY COLUMN username VARCHAR(255) NOT NULL");
+      await p.query("ALTER TABLE users ADD UNIQUE INDEX IF NOT EXISTS uq_username (username)");
+      console.log("MySQL: Configured username column with constraints.");
+    } catch (err: any) {
+      if (err.errno !== 1060) {
+        console.error("MySQL: Error running ALTER TABLE for users (username):", err);
+      }
+    }
 
     // Ensure password column exists on existing users table (migration)
     try {
@@ -60,7 +87,7 @@ async function setupTables(p: mysql.Pool) {
       console.log("MySQL: Verified or added password column to users table.");
     } catch (err: any) {
       if (err.errno !== 1060) {
-        console.error("MySQL: Error running ALTER TABLE for users:", err);
+        console.error("MySQL: Error running ALTER TABLE for users (password):", err);
       }
     }
 
@@ -82,18 +109,38 @@ async function setupTables(p: mysql.Pool) {
       "UPDATE users SET name = 'Andi Firmansyah' WHERE email = 'manager@ins.co.id' AND name = 'Andi Manager'"
     );
 
+    // Migrate: split operator role into operator_in and operator_out
+    await p.query("UPDATE users SET role = 'operator_in' WHERE role = 'operator' AND (username = 'operator' OR username = 'dimas' OR email = 'operator@ins.co.id')");
+    await p.query("UPDATE users SET role = 'operator_out' WHERE role = 'operator' AND (username = 'bayu' OR username = 'operator_out' OR email = 'bayu@ins.co.id')");
+    await p.query("UPDATE users SET role = 'operator_in' WHERE role = 'operator'");
+
+    // Update usernames to match auth.ts so that login succeeds
+    await p.query("UPDATE users SET username = 'operator_in' WHERE username = 'operator' OR email = 'operator@ins.co.id'");
+    await p.query("UPDATE users SET username = 'operator_out' WHERE username = 'bayu' OR email = 'bayu@ins.co.id'");
+
 
     // 2. production_lines
     await p.query(`
       CREATE TABLE IF NOT EXISTS production_lines (
         id VARCHAR(50) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
+        type VARCHAR(50) NOT NULL DEFAULT 'in',
         active BOOLEAN DEFAULT TRUE,
         capacity INT NOT NULL,
         shifts INT NOT NULL,
         operators INT NOT NULL
       )
     `);
+
+    // Ensure type column exists on production_lines (migration)
+    try {
+      await p.query("ALTER TABLE production_lines ADD COLUMN type VARCHAR(50) NOT NULL DEFAULT 'in'");
+      console.log("MySQL: Added type column to production_lines table.");
+    } catch (err: any) {
+      if (err.errno !== 1060) {
+        console.error("MySQL: Error running ALTER TABLE for production_lines (type):", err);
+      }
+    }
 
     // 3. production_records
     await p.query(`
@@ -118,9 +165,24 @@ async function setupTables(p: mysql.Pool) {
         incoming_date DATE NOT NULL,
         position VARCHAR(100) NOT NULL,
         status VARCHAR(50) NOT NULL,
-        quantity INT NOT NULL
+        quantity INT NOT NULL,
+        original_quantity INT NOT NULL DEFAULT 0,
+        origin_line VARCHAR(50) NULL,
+        operator VARCHAR(255) NULL
       )
     `);
+
+    try {
+      await p.query("ALTER TABLE fifo_materials ADD COLUMN original_quantity INT NOT NULL DEFAULT 0");
+      await p.query("ALTER TABLE fifo_materials ADD COLUMN origin_line VARCHAR(50) NULL");
+      await p.query("ALTER TABLE fifo_materials ADD COLUMN operator VARCHAR(255) NULL");
+      await p.query("UPDATE fifo_materials SET original_quantity = quantity WHERE original_quantity = 0");
+      console.log("MySQL: Added origin info columns to fifo_materials table.");
+    } catch (err: any) {
+      if (err.errno !== 1060) {
+        console.error("MySQL: Error running ALTER TABLE for fifo_materials:", err);
+      }
+    }
 
     // 5. activities
     await p.query(`
@@ -143,19 +205,28 @@ async function setupTables(p: mysql.Pool) {
       )
     `);
 
+    // 7. parts master table
+    await p.query(`
+      CREATE TABLE IF NOT EXISTS parts (
+        part_number VARCHAR(100) PRIMARY KEY,
+        product_name VARCHAR(255) NOT NULL,
+        threshold INT NOT NULL DEFAULT 100
+      )
+    `);
+
     // --- SEED DATA IF TABLES ARE EMPTY ---
 
     // Seed users
     const [userRows] = await p.query<any>("SELECT COUNT(*) as count FROM users");
     if (userRows[0].count === 0) {
       const demoUsers = [
-        ["Afifi Rouf", "operator@ins.co.id", "operator", "123456"],
-        ["Bayu Saputra", "bayu@ins.co.id", "operator", "123456"],
-        ["Sari Handayani", "supervisor@ins.co.id", "supervisor", "123456"],
-        ["Andi Firmansyah", "manager@ins.co.id", "manager", "123456"],
-        ["Dimas Pratama", "dimas@ins.co.id", "operator", "123456"],
+        ["Afifi Rouf", "operator_in", "operator_in@ins.co.id", "operator_in", "123456"],
+        ["Bayu Saputra", "operator_out", "operator_out@ins.co.id", "operator_out", "123456"],
+        ["Sari Handayani", "supervisor", "supervisor@ins.co.id", "supervisor", "123456"],
+        ["Andi Firmansyah", "manager", "manager@ins.co.id", "manager", "123456"],
+        ["Dimas Pratama", "dimas", "dimas@ins.co.id", "operator_in", "123456"],
       ];
-      await p.query("INSERT INTO users (name, email, role, password) VALUES ?", [demoUsers]);
+      await p.query("INSERT INTO users (name, username, email, role, password) VALUES ?", [demoUsers]);
       console.log("MySQL: Seeded users table.");
     }
 
@@ -165,12 +236,13 @@ async function setupTables(p: mysql.Pool) {
       const lines = productionLines.map((l, i) => [
         l,
         l,
+        l.startsWith("SS") ? "out" : "in",
         true,
         120 + i * 20,
         3,
         4 + i,
       ]);
-      await p.query("INSERT INTO production_lines (id, name, active, capacity, shifts, operators) VALUES ?", [lines]);
+      await p.query("INSERT INTO production_lines (id, name, type, active, capacity, shifts, operators) VALUES ?", [lines]);
       console.log("MySQL: Seeded production_lines table.");
     }
 
@@ -202,8 +274,11 @@ async function setupTables(p: mysql.Pool) {
         m.position,
         m.status,
         m.quantity,
+        m.quantity,
+        "SC-1",
+        "Afifi Rouf",
       ]);
-      await p.query("INSERT INTO fifo_materials (id, part_number, lot_number, incoming_date, position, status, quantity) VALUES ?", [fifos]);
+      await p.query("INSERT INTO fifo_materials (id, part_number, lot_number, incoming_date, position, status, quantity, original_quantity, origin_line, operator) VALUES ?", [fifos]);
       console.log("MySQL: Seeded fifo_materials table.");
     }
 
@@ -229,6 +304,21 @@ async function setupTables(p: mysql.Pool) {
       ]);
       await p.query("INSERT INTO alerts (title, \`desc\`, severity) VALUES ?", [alts]);
       console.log("MySQL: Seeded alerts table.");
+    }
+
+    // Seed parts master
+    const [partRows] = await p.query<any>("SELECT COUNT(*) as count FROM parts");
+    if (partRows[0].count === 0) {
+      const initialParts = [
+        ["K18H", "SS COMP K18H Assy", 400],
+        ["K84A", "SS COMP K84A Assy", 200],
+        ["KRHW", "SS COMP KRHW Assy", 100],
+        ["XD 831", "SS COMP XD 831 Assy", 30],
+        ["1PA", "SS COMP 1PA Assy", 20],
+        ["1WD", "SS COMP 1WD Assy", 10],
+      ];
+      await p.query("INSERT INTO parts (part_number, product_name, threshold) VALUES ?", [initialParts]);
+      console.log("MySQL: Seeded parts table.");
     }
 
     console.log("MySQL Database setup and seeding completed successfully.");

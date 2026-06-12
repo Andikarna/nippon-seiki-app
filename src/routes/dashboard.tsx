@@ -31,14 +31,14 @@ function Dashboard() {
   const { kpis: dbKpis, dailyTrend, productionLines, activities, alerts } = data;
 
   const kpiCards = [
-    { label: "Today's Production", value: dbKpis.todayProduction.toLocaleString(), delta: "+12.4%", up: true, icon: Activity, hint: "vs yesterday" },
-    { label: "Total Parts In", value: dbKpis.totalPartsIn.toLocaleString(), delta: "+8.1%", up: true, icon: PackagePlus, hint: "Sub-Assy" },
-    { label: "Total Parts Out", value: dbKpis.totalPartsOut.toLocaleString(), delta: "-2.3%", up: false, icon: PackageMinus, hint: "Assy line" },
-    { label: "FIFO Compliance", value: dbKpis.fifoCompliance, delta: "+1.2%", up: true, icon: Boxes, hint: "7-day avg" },
+    { label: "Produksi Hari Ini", value: dbKpis.todayProduction.toLocaleString(), delta: "+12.4%", up: true, icon: Activity, hint: "vs kemarin" },
+    { label: "Total Part Masuk", value: dbKpis.totalPartsIn.toLocaleString(), delta: "+8.1%", up: true, icon: PackagePlus, hint: "Sub-Assy" },
+    { label: "Total Part Keluar", value: dbKpis.totalPartsOut.toLocaleString(), delta: "-2.3%", up: false, icon: PackageMinus, hint: "Lini Assy" },
+    { label: "Kepatuhan FIFO", value: dbKpis.fifoCompliance, delta: "+1.2%", up: true, icon: Boxes, hint: "rata-rata 7 hari" },
   ];
 
   return (
-    <AppLayout title="Dashboard" subtitle={`Hey, ${firstName} — you have 3 production tasks today.`}>
+    <AppLayout title="Dashboard" subtitle={`Halo, ${firstName} — Anda memiliki 3 tugas produksi hari ini.`}>
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {kpiCards.map((k) => (
@@ -68,10 +68,10 @@ function Dashboard() {
         <Card className="lg:col-span-2 border-0 shadow-soft">
           <CardHeader className="flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle className="text-base">Production Trend</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Daily output across Sub-Assy and Assy</p>
+              <CardTitle className="text-base">Tren Produksi</CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">Output harian Sub-Assy dan Assy</p>
             </div>
-            <Badge variant="outline" className="gap-1"><TrendingUp className="h-3 w-3" />This week</Badge>
+            <Badge variant="outline" className="gap-1"><TrendingUp className="h-3 w-3" />Minggu ini</Badge>
           </CardHeader>
           <CardContent className="pt-2">
             <ResponsiveContainer width="100%" height={280}>
@@ -103,13 +103,13 @@ function Dashboard() {
 
         <Card className="border-0 shadow-soft">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">FIFO Performance</CardTitle>
-            <p className="text-xs text-muted-foreground">Weekly compliance rate</p>
+            <CardTitle className="text-base">Performa FIFO</CardTitle>
+             <p className="text-xs text-muted-foreground">Tingkat kepatuhan mingguan</p>
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-semibold tracking-tight">98.4%</div>
             <div className="text-xs text-success mt-1 flex items-center gap-1">
-              <ArrowUpRight className="h-3 w-3" /> +1.2% vs last week
+              <ArrowUpRight className="h-3 w-3" /> +1.2% vs minggu lalu
             </div>
             <ResponsiveContainer width="100%" height={180} className="mt-3">
               <LineChart data={fifoPerformance} margin={{ left: -20, right: 8, top: 8 }}>
@@ -129,7 +129,7 @@ function Dashboard() {
         <Card className="border-0 shadow-soft">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Sub-Assy vs Assy</CardTitle>
-            <p className="text-xs text-muted-foreground">Production volume comparison</p>
+             <p className="text-xs text-muted-foreground">Perbandingan volume produksi</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
@@ -147,8 +147,8 @@ function Dashboard() {
 
         <Card className="border-0 shadow-soft">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Active Production Lines</CardTitle>
-            <p className="text-xs text-muted-foreground">Live status</p>
+            <CardTitle className="text-base">Lini Produksi Aktif</CardTitle>
+             <p className="text-xs text-muted-foreground">Status langsung</p>
           </CardHeader>
           <CardContent className="space-y-3">
             {productionLines.map((l: any, i: number) => {
@@ -178,13 +178,13 @@ function Dashboard() {
         <Card className="border-0 shadow-soft">
           <CardHeader className="pb-2 flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-base">Production Alerts</CardTitle>
-              <p className="text-xs text-muted-foreground">Requires attention</p>
+              <CardTitle className="text-base">Peringatan Produksi</CardTitle>
+              <p className="text-xs text-muted-foreground">Perlu perhatian</p>
             </div>
             <Badge variant="secondary">{alerts.length}</Badge>
           </CardHeader>
           <CardContent className="space-y-2">
-            {alerts.map((a) => {
+            {alerts.map((a: any) => {
               const Icon = a.severity === "error" ? XCircle : a.severity === "warning" ? AlertTriangle : Info;
               const color = a.severity === "error" ? "text-destructive bg-destructive/10" : a.severity === "warning" ? "text-warning bg-warning/15" : "text-info bg-info/10";
               return (
@@ -199,7 +199,7 @@ function Dashboard() {
                 </div>
               );
             })}
-            <Button variant="ghost" size="sm" className="w-full mt-2 text-primary">View all alerts</Button>
+            <Button variant="ghost" size="sm" className="w-full mt-2 text-primary">Lihat semua peringatan</Button>
           </CardContent>
         </Card>
       </div>
@@ -208,15 +208,15 @@ function Dashboard() {
       <Card className="border-0 shadow-soft">
         <CardHeader className="pb-2 flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base">Recent Activities</CardTitle>
-            <p className="text-xs text-muted-foreground">Live audit trail across the shop floor</p>
+            <CardTitle className="text-base">Aktivitas Terkini</CardTitle>
+            <p className="text-xs text-muted-foreground">Log audit langsung di seluruh lantai produksi</p>
           </div>
-          <Button variant="outline" size="sm">View full log</Button>
+          <Button variant="outline" size="sm">Lihat log lengkap</Button>
         </CardHeader>
         <CardContent>
           <div className="relative pl-6">
             <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
-            {activities.map((a) => {
+            {activities.map((a: any) => {
               const Icon = a.type === "error" ? XCircle : a.type === "warning" ? AlertTriangle : a.type === "success" ? CheckCircle2 : Info;
               const color = a.type === "error" ? "bg-destructive" : a.type === "warning" ? "bg-warning" : a.type === "success" ? "bg-success" : "bg-info";
               return (

@@ -7,7 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { CheckCircle2, AlertTriangle, XCircle, ScanLine, ShieldCheck, Clock } from "lucide-react";
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getFifoMaterials, checkFifoPosition, dispatchFifoMaterial } from "@/lib/api/db.functions";
@@ -34,6 +38,7 @@ function FifoPage() {
   const [lotNumber, setLotNumber] = useState("");
   const [scanResult, setScanResult] = useState<any>(null);
   const [scanLoading, setScanLoading] = useState(false);
+  const [filterPartNumber, setFilterPartNumber] = useState<string>("All");
 
   const [isApprovalsOpen, setIsApprovalsOpen] = useState(false);
   const [approvals, setApprovals] = useState<any[]>(() => {
@@ -82,16 +87,21 @@ function FifoPage() {
     const updated = approvals.filter((a) => a.id !== id);
     setApprovals(updated);
     localStorage.setItem("npms_approvals", JSON.stringify(updated));
-    toast.error(`Request for Lot ${lotNumber} rejected.`);
+    toast.error(`Permintaan Lot ${lotNumber} ditolak.`);
   };
 
   const materials = data?.materials ?? [];
   const counts = data?.counts ?? { compliant: 0, warning: 0, violation: 0 };
+  
+  const uniquePartNumbers = ["All", ...Array.from(new Set(materials.map((m: any) => m.partNumber)))];
+  const filteredMaterials = filterPartNumber === "All" 
+    ? materials 
+    : materials.filter((m: any) => m.partNumber === filterPartNumber);
 
   const handleCheckFifo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!lotNumber.trim()) {
-      toast.error("Please enter a lot number");
+      toast.error("Harap masukkan nomor lot");
       return;
     }
     setScanLoading(true);
@@ -105,10 +115,10 @@ function FifoPage() {
           toast.warning(`${lotNumber} is NOT next in queue.`);
         }
       } else {
-        toast.error(`Lot number ${lotNumber} not found in database.`);
+        toast.error(`Nomor lot ${lotNumber} tidak ditemukan di database.`);
       }
     } catch (err) {
-      toast.error("Failed to check lot number");
+      toast.error("Gagal memeriksa nomor lot");
     } finally {
       setScanLoading(false);
     }
@@ -126,20 +136,20 @@ function FifoPage() {
         }))
         .reverse(); // oldest first
   return (
-    <AppLayout title="FIFO Check" subtitle="Enforce First-In-First-Out material flow across the floor.">
+    <AppLayout title="FIFO Check" subtitle="Terapkan aliran material First-In-First-Out di seluruh lantai produksi.">
       {/* Status cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatusCard label="FIFO Compliant" value={counts.compliant} icon={CheckCircle2} color="success" />
-        <StatusCard label="Warnings" value={counts.warning} icon={AlertTriangle} color="warning" />
-        <StatusCard label="FIFO Violations" value={counts.violation} icon={XCircle} color="destructive" />
+        <StatusCard label="FIFO Sesuai" value={counts.compliant} icon={CheckCircle2} color="success" />
+        <StatusCard label="Peringatan" value={counts.warning} icon={AlertTriangle} color="warning" />
+        <StatusCard label="Pelanggaran FIFO" value={counts.violation} icon={XCircle} color="destructive" />
       </div>
 
       {/* Scan + timeline */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-1 border-0 shadow-soft">
           <CardHeader>
-            <CardTitle className="text-base">Scan Lot Number</CardTitle>
-            <p className="text-xs text-muted-foreground">Check FIFO position instantly.</p>
+            <CardTitle className="text-base">Scan Nomor Lot</CardTitle>
+            <p className="text-xs text-muted-foreground">Periksa posisi FIFO secara instan.</p>
           </CardHeader>
           <CardContent className="space-y-3">
             <form onSubmit={handleCheckFifo} className="space-y-3">
@@ -158,7 +168,7 @@ function FifoPage() {
                 ) : (
                   <ShieldCheck className="h-4 w-4" />
                 )}
-                Check FIFO position
+                Periksa posisi FIFO
               </Button>
             </form>
 
@@ -174,24 +184,24 @@ function FifoPage() {
                   <>
                     <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-medium">Lot number not found</div>
-                      <div className="opacity-80">Make sure the lot exists in stock.</div>
+                      <div className="font-medium">Nomor lot tidak ditemukan</div>
+                      <div className="opacity-80">Pastikan lot ada di stok.</div>
                     </div>
                   </>
                 ) : scanResult.isNext ? (
                   <>
                     <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-medium">{scanResult.lotNumber} is next in queue</div>
-                      <div className="opacity-80">Position 1 · use this material first.</div>
+                      <div className="font-medium">{scanResult.lotNumber} adalah berikutnya dalam antrian</div>
+                      <div className="opacity-80">Posisi 1 · gunakan material ini terlebih dahulu.</div>
                     </div>
                   </>
                 ) : (
                   <>
                     <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-medium">FIFO Alert: Not next in queue</div>
-                      <div className="opacity-80">Position {scanResult.position} · Older lots exist for part {scanResult.partNumber}.</div>
+                      <div className="font-medium">Peringatan FIFO: Bukan berikutnya dalam antrian</div>
+                      <div className="opacity-80">Posisi {scanResult.position} · Lot yang lebih lama ada untuk part {scanResult.partNumber}.</div>
                     </div>
                   </>
                 )}
@@ -202,18 +212,18 @@ function FifoPage() {
 
         <Card className="lg:col-span-2 border-0 shadow-soft">
           <CardHeader>
-            <CardTitle className="text-base">Material Flow Timeline</CardTitle>
+            <CardTitle className="text-base">Timeline Aliran Material</CardTitle>
             <p className="text-xs text-muted-foreground">
               {scanResult?.found 
-                ? `FIFO order for ${scanResult.partNumber}`
-                : "Active production lot flow order"}
+                ? `Urutan FIFO untuk ${scanResult.partNumber}`
+                : "Urutan aliran lot produksi aktif"}
             </p>
           </CardHeader>
           <CardContent>
             <div className="relative py-4">
               <div className="absolute left-[10%] right-[10%] top-10 h-0.5 bg-border" />
               {timeline.length === 0 ? (
-                <div className="text-center py-6 text-xs text-muted-foreground">No active lots in timeline.</div>
+                <div className="text-center py-6 text-xs text-muted-foreground">Tidak ada lot aktif di timeline.</div>
               ) : (
                 <div className={`grid gap-4 relative grid-cols-2 md:grid-cols-5`}>
                   {timeline.map((s: any, i: number) => {
@@ -231,7 +241,7 @@ function FifoPage() {
                         <Badge variant="outline" className={`mt-1 text-[10px] ${
                           isNext ? "bg-primary/10 text-primary border-primary/20" : isV ? "bg-destructive/10 text-destructive border-destructive/20" : ""
                         }`}>
-                          {isNext ? "Use next" : isV ? "Violation" : "Queue"}
+                          {isNext ? "Gunakan berikutnya" : isV ? "Pelanggaran" : "Antrian"}
                         </Badge>
                       </div>
                     );
@@ -247,27 +257,41 @@ function FifoPage() {
       <Card className="border-0 shadow-soft">
         <CardHeader className="flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base">FIFO Materials</CardTitle>
-            <p className="text-xs text-muted-foreground">All tracked lots and their current FIFO status</p>
+            <CardTitle className="text-base">Material FIFO</CardTitle>
+            <p className="text-xs text-muted-foreground">Semua lot yang dilacak dan status FIFO mereka saat ini</p>
           </div>
-          {isSupervisor && (
-            <Button variant="outline" size="sm" onClick={() => setIsApprovalsOpen(true)}>
-              Supervisor approval queue {approvals.length > 0 && <Badge variant="secondary" className="ml-1.5 bg-primary/10 text-primary">{approvals.length}</Badge>}
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            <Select value={filterPartNumber} onValueChange={setFilterPartNumber}>
+              <SelectTrigger className="w-[180px] h-9 text-xs">
+                <SelectValue placeholder="Filter Nomor Part" />
+              </SelectTrigger>
+              <SelectContent>
+                {uniquePartNumbers.map((part: any) => (
+                  <SelectItem key={part} value={part} className="text-xs">
+                    {part === "All" ? "Semua Part" : part}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isSupervisor && (
+              <Button variant="outline" size="sm" onClick={() => setIsApprovalsOpen(true)}>
+                Antrian persetujuan supervisor {approvals.length > 0 && <Badge variant="secondary" className="ml-1.5 bg-primary/10 text-primary">{approvals.length}</Badge>}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-xl border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
-                  <TableHead>Material ID</TableHead>
-                  <TableHead>Part Number</TableHead>
-                  <TableHead>Lot Number</TableHead>
-                  <TableHead>Incoming Date</TableHead>
-                  <TableHead>Position</TableHead>
+                  <TableHead>ID Material</TableHead>
+                  <TableHead>Nomor Part</TableHead>
+                  <TableHead>Nomor Lot</TableHead>
+                  <TableHead>Tanggal Masuk</TableHead>
+                  <TableHead>Posisi</TableHead>
                   <TableHead className="text-right">Qty</TableHead>
-                  <TableHead>FIFO Status</TableHead>
+                  <TableHead>Status FIFO</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -275,17 +299,17 @@ function FifoPage() {
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-10 text-muted-foreground text-sm">
                       <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2" />
-                      Loading FIFO materials...
+                      Memuat material FIFO...
                     </TableCell>
                   </TableRow>
-                ) : materials.length === 0 ? (
+                ) : filteredMaterials.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-10 text-muted-foreground text-sm">
-                      No materials in stock.
+                      Tidak ada material di stok.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  materials.map((m: any) => (
+                  filteredMaterials.map((m: any) => (
                     <TableRow key={m.id} className="hover:bg-muted/30">
                       <TableCell className="font-mono text-xs font-medium">{m.id}</TableCell>
                       <TableCell className="font-mono text-xs">{m.partNumber}</TableCell>
@@ -319,10 +343,10 @@ function FifoPage() {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-base">
                 <ShieldCheck className="h-5 w-5 text-primary" />
-                <span>Supervisor Approval Queue</span>
+                <span>Antrian Persetujuan Supervisor</span>
               </DialogTitle>
               <DialogDescription>
-                Review pending FIFO bypass approval requests from operators.
+                Tinjau permintaan persetujuan bypass FIFO yang tertunda dari operator.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2 max-h-[350px] overflow-y-auto pr-1">
@@ -335,10 +359,10 @@ function FifoPage() {
                         <Badge variant="outline" className="text-[10px] bg-warning/10 text-warning border-warning/20">Pending</Badge>
                       </div>
                       <div className="mt-1 text-sm font-semibold font-mono">{a.lotNumber} ({a.partNumber})</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">Submitted by Operator: <span className="font-medium text-foreground">{a.operator}</span></div>
+                      <div className="text-xs text-muted-foreground mt-0.5">Diajukan oleh Operator: <span className="font-medium text-foreground">{a.operator}</span></div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-muted-foreground">Qty Requested</span>
+                      <span className="text-xs text-muted-foreground">Qty Diminta</span>
                       <div className="text-base font-semibold text-foreground tabular-nums">{a.quantity} pcs</div>
                     </div>
                   </div>
@@ -356,7 +380,7 @@ function FifoPage() {
                       className="h-8 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20 hover:border-destructive/30"
                       onClick={() => handleReject(a.id, a.lotNumber)}
                     >
-                      Reject Bypass
+                      Tolak Bypass
                     </Button>
                     <Button
                       type="button"
@@ -364,7 +388,7 @@ function FifoPage() {
                       className="h-8 text-xs bg-gradient-primary text-white"
                       onClick={() => handleApprove(a)}
                     >
-                      Approve Bypass
+                      Setujui Bypass
                     </Button>
                   </div>
                 </div>
@@ -372,7 +396,7 @@ function FifoPage() {
               {approvals.length === 0 && (
                 <div className="text-sm text-muted-foreground text-center py-8 italic flex flex-col items-center gap-2">
                   <CheckCircle2 className="h-8 w-8 text-success animate-bounce" />
-                  <span>All approval queues cleared! No pending bypass requests.</span>
+                  <span>Semua antrian persetujuan bersih! Tidak ada permintaan bypass yang tertunda.</span>
                 </div>
               )}
             </div>

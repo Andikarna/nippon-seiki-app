@@ -1,9 +1,10 @@
 // Simple client-only auth + mock data store for NPMS
 import { useEffect, useState } from "react";
 
-export type Role = "operator" | "supervisor" | "manager";
+export type Role = "operator_in" | "operator_out" | "supervisor" | "manager";
 export interface User {
   name: string;
+  username: string;
   email: string;
   role: Role;
 }
@@ -12,17 +13,26 @@ const AUTH_KEY = "npms_auth";
 
 export const DEMO_USERS: User[] = [
   {
-    name: "Afifi Rouf",
-    email: "operator@ins.co.id",
-    role: "operator",
+    name: "Afifi Rouf (In)",
+    username: "operator_in",
+    email: "operator_in@ins.co.id",
+    role: "operator_in",
+  },
+  {
+    name: "Bayu Saputra (Out)",
+    username: "operator_out",
+    email: "operator_out@ins.co.id",
+    role: "operator_out",
   },
   {
     name: "Sari Handayani",
+    username: "supervisor",
     email: "supervisor@ins.co.id",
     role: "supervisor",
   },
   {
     name: "Andi Firmansyah",
+    username: "manager",
     email: "manager@ins.co.id",
     role: "manager",
   },
@@ -47,9 +57,9 @@ export function setUser(u: User | null) {
 
 import { authenticateUser } from "./api/db.functions";
 
-export async function loginUser(email: string, password?: string): Promise<User | null> {
+export async function loginUser(username: string, password?: string): Promise<User | null> {
   try {
-    const res = await authenticateUser({ data: { email, password } });
+    const res = await authenticateUser({ data: { username, password } });
     if (res.success && res.user) {
       setUser(res.user);
       return res.user;

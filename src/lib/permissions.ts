@@ -23,8 +23,9 @@ export const ALL_PERMISSIONS = [
   "Access All Reports",
   "Manage Users",
   "Manage Production Lines",
+  "Manage Parts",
   "Export Data",
-] as const;
+ ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];
 
@@ -42,14 +43,18 @@ export const PERMISSION_ROUTES: Record<Permission, string[]> = {
   "Access All Reports":     ["/reports"],
   "Manage Users":           ["/settings"],
   "Manage Production Lines":["/settings"],
+  "Manage Parts":           ["/settings"],
   "Export Data":            ["/reports"],
 };
 
 /** Default permissions per role (used when nothing is saved yet) */
 export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  operator: [
+  operator_in: [
     "View Dashboard",
     "Input Production",
+  ],
+  operator_out: [
+    "View Dashboard",
     "Part Out",
     "FIFO Check",
   ],
@@ -60,13 +65,14 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "Generate Reports",
     "View Production Data",
     "Export Data",
+    "Manage Production Lines",
+    "Manage Parts",
   ],
   manager: [
     "View Dashboard",
     "Access Analytics",
     "Access All Reports",
     "Manage Users",
-    "Manage Production Lines",
     "View Production Data",
     "Export Data",
   ],
@@ -76,7 +82,18 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 export function loadRolePermissions(): Record<Role, Permission[]> {
   if (typeof window === "undefined") return { ...DEFAULT_ROLE_PERMISSIONS };
   try {
+    const migrationKey = "npms_perms_migrated_v4";
     const raw = localStorage.getItem(PERMS_KEY);
+
+    // Migrate saved permissions if they haven't been migrated yet
+    if (!localStorage.getItem(migrationKey)) {
+      localStorage.setItem(PERMS_KEY, JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
+      localStorage.setItem(migrationKey, "true");
+      // Dispatch event to make sure components know permissions updated
+      window.dispatchEvent(new Event("npms-permissions-changed"));
+      return { ...DEFAULT_ROLE_PERMISSIONS };
+    }
+
     if (raw) return JSON.parse(raw) as Record<Role, Permission[]>;
   } catch {
     // ignore parse errors

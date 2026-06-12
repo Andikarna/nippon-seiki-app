@@ -11,13 +11,13 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { ScanLine, Save, Send, CheckCircle2, Package, Clock, Layers, Trash2, Printer as PrinterIcon } from "lucide-react";
-import { useState } from "react";
-import { addProductionRecord, getActiveLines } from "@/lib/api/db.functions";
+import { Save, Send, CheckCircle2, Package, Clock, Layers, Trash2, Printer as PrinterIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { addProductionRecord, getActiveLines, getNextLotNumber, getParts } from "@/lib/api/db.functions";
 import { useUser } from "@/lib/auth";
 import { getPref } from "@/lib/preferences";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/part-input")({
   head: () => ({ meta: [{ title: "Part In — NPMS" }] }),
@@ -26,6 +26,7 @@ export const Route = createFileRoute("/part-input")({
 
 function PartInput() {
   const user = useUser();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -36,8 +37,16 @@ function PartInput() {
   });
 
   const lines = dbLines && dbLines.length > 0
-    ? dbLines.map((l: any) => l.name)
-    : ["SC-1", "SC-2", "SC-3", "SS-1", "SS-2"];
+    ? dbLines.filter((l: any) => l.type === "in" || l.type === "both").map((l: any) => l.name)
+    : ["SC-1", "SC-2", "SC-3"];
+
+  // Load master parts list from database
+  const { data: dbParts } = useQuery({
+    queryKey: ["parts"],
+    queryFn: () => getParts(),
+  });
+
+  const partsList = dbParts ?? [];
 
   // Manage drafts from localStorage
   const [drafts, setDrafts] = useState<any[]>(() => {
@@ -51,14 +60,38 @@ function PartInput() {
   });
 
   const [form, setForm] = useState({
-    barcode: "",
-    part: "K18H",
-    product: "SS COMP K18H Sub-Assy",
+    part: "",
+    operator: "",
     line: "SC-1",
     qty: "400",
-    lot: "SC1 126-7",
+    lot: "",
     date: new Date().toISOString().slice(0, 10),
   });
+
+  useEffect(() => {
+    if (partsList.length > 0 && !form.part) {
+      setForm((prev) => ({ ...prev, part: partsList[0].partNumber }));
+    }
+  }, [partsList, form.part]);
+
+  useEffect(() => {
+    if (user?.name) {
+      setForm((prev) => ({ ...prev, operator: prev.operator || user.name }));
+    }
+  }, [user]);
+
+  // Fetch next lot number automatically
+  const { data: lotData } = useQuery({
+    queryKey: ["nextLotNumber", form.line, form.date],
+    queryFn: () => getNextLotNumber({ data: { line: form.line, date: form.date } }),
+    enabled: !!form.line && !!form.date,
+  });
+
+  useEffect(() => {
+    if (lotData?.lotNumber) {
+      setForm((prev) => ({ ...prev, lot: lotData.lotNumber }));
+    }
+  }, [lotData]);
 
   const handleSaveDraft = () => {
     const newDraft = {
@@ -69,12 +102,12 @@ function PartInput() {
     const updated = [newDraft, ...drafts];
     setDrafts(updated);
     localStorage.setItem("npms_drafts", JSON.stringify(updated));
-    toast.success("Draft saved successfully.");
+    toast.success("Draft berhasil disimpan.");
   };
 
   const handleLoadDraft = (d: any) => {
     setForm({ ...d.data });
-    toast.info(`Draft ${d.id} loaded.`);
+    toast.info(`Draft ${d.id} dimuat.`);
   };
 
   const handleDeleteDraft = (id: string, e: React.MouseEvent) => {
@@ -82,76 +115,27 @@ function PartInput() {
     const updated = drafts.filter((d) => d.id !== id);
     setDrafts(updated);
     localStorage.setItem("npms_drafts", JSON.stringify(updated));
-    toast.success("Draft deleted.");
+    toast.success("Draft dihapus.");
   };
 
-  // Automatically update part & product name when barcodes are scanned
-  const handleBarcodeChange = (val: string) => {
-    // Mock auto-fill logic for barcodes
-    let part = "K18H";
-    let product = "SS COMP K18H Sub-Assy";
-    let qty = "400";
 
-    const normalizedVal = val.toUpperCase().trim();
-
-    if (normalizedVal.includes("K84A")) {
-      part = "K84A";
-      product = "SS COMP K84A Sub-Assy";
-      qty = "512";
-    } else if (normalizedVal.includes("KRHW")) {
-      part = "KRHW";
-      product = "SS COMP KRHW Sub-Assy";
-      qty = "200";
-    } else if (normalizedVal.includes("XD 831") || normalizedVal.includes("XD831")) {
-      part = "XD 831";
-      product = "SS COMP XD 831 Sub-Assy";
-      qty = "41";
-    } else if (normalizedVal.includes("1PA")) {
-      part = "1PA";
-      product = "SS COMP 1PA Sub-Assy";
-      qty = "19";
-    } else if (normalizedVal.includes("1WD")) {
-      part = "1WD";
-      product = "SS COMP 1WD Sub-Assy";
-      qty = "100";
-    } else if (normalizedVal.includes("KYEG")) {
-      part = "KYEG";
-      product = "SS COMP KYEG Sub-Assy";
-      qty = "150";
-    } else if (normalizedVal.includes("K45A")) {
-      part = "K45A";
-      product = "SS COMP K45A Sub-Assy";
-      qty = "250";
-    }
-
-    // Auto-generate lot from scan matching Excel format: SC1 126-xx
-    const counter = Math.floor(10 + Math.random() * 89);
-    const lotNum = (normalizedVal.startsWith("SC1") || normalizedVal.startsWith("LOT"))
-      ? normalizedVal
-      : `SC1 126-${counter}`;
-
-    setForm({
-      ...form,
-      barcode: val,
-      part,
-      product,
-      qty,
-      lot: lotNum,
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.part.trim()) {
-      toast.error("Part Number is required");
+      toast.error("Nomor Part wajib diisi");
+      return;
+    }
+    if (!form.operator.trim()) {
+      toast.error("Nama Operator wajib diisi");
       return;
     }
     if (!form.lot.trim()) {
-      toast.error("Lot Number is required");
+      toast.error("Nomor Lot wajib diisi");
       return;
     }
     if (!form.qty || Number(form.qty) <= 0) {
-      toast.error("Quantity must be greater than 0");
+      toast.error("Jumlah harus lebih dari 0");
       return;
     }
 
@@ -160,10 +144,10 @@ function PartInput() {
       const res = await addProductionRecord({
         data: {
           partNumber: form.part,
-          productName: form.product,
+          productName: partsList.find((p: any) => p.partNumber === form.part)?.productName || `SS COMP ${form.part} Sub-Assy`,
           quantity: Number(form.qty),
           line: form.line,
-          operator: user?.name || "Demo Operator",
+          operator: form.operator,
           lotNumber: form.lot,
           date: form.date,
         },
@@ -171,74 +155,62 @@ function PartInput() {
 
       if (res.success) {
         setOpen(true);
-        // Reset form barcode
-        setForm(f => ({ ...f, barcode: "" }));
-        toast.success("Transaction submitted to database.");
+        toast.success("Transaksi berhasil dikirim ke database.");
+        queryClient.invalidateQueries({ queryKey: ["nextLotNumber"] });
 
         // Auto-print labels if preference is ON
         if (getPref("autoPrintLabels")) {
-          toast.info("Auto-print triggered.", {
-            description: `Printing QR label for ${form.part} (${form.qty} pcs) · ${form.lot}`,
+          toast.info("Auto-print dipicu.", {
+            description: `Mencetak label QR untuk ${form.part} (${form.qty} pcs) · ${form.lot}`,
             icon: <PrinterIcon className="h-4 w-4" />,
             duration: 4000,
           });
         }
       }
     } catch (err) {
-      toast.error("Failed to submit production record.");
+      toast.error("Gagal mengirim data produksi.");
       console.error(err);
     } finally {
       setSubmitting(false);
     }
   };
   return (
-    <AppLayout title="Part In" subtitle="Quickly record Sub-Assy and Assy production transactions (Part Input).">
+    <AppLayout title="Part In" subtitle="Catat transaksi produksi Sub-Assy dan Assy dengan cepat (Input Part).">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="lg:col-span-2 border-0 shadow-soft">
           <CardHeader>
-            <CardTitle className="text-base">Production Transaction</CardTitle>
-            <p className="text-xs text-muted-foreground">Scan a barcode or fill in the fields manually.</p>
+            <CardTitle className="text-base">Transaksi Produksi</CardTitle>
+            <p className="text-xs text-muted-foreground">Isi kolom di bawah ini untuk mencatat transaksi produksi.</p>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* Barcode scanner area */}
-            <div className="relative rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-6">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-xl bg-gradient-primary grid place-items-center text-primary-foreground shadow-glow">
-                  <ScanLine className="h-7 w-7" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium">Barcode Scanner</div>
-                  <div className="text-xs text-muted-foreground">Focus the input and scan, or type manually.</div>
-                </div>
-                <Badge variant="outline" className="bg-success/10 text-success border-success/20 gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> Ready
-                </Badge>
-              </div>
-              <Input
-                autoFocus
-                value={form.barcode}
-                onChange={(e) => handleBarcodeChange(e.target.value)}
-                placeholder="Scan or enter barcode (e.g. K18H, K84A, SC1 126-7)..."
-                className="mt-4 h-12 text-base font-mono bg-background"
-                disabled={submitting}
-              />
-            </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="part">TYPE (Part Number)</Label>
-                  <Input id="part" value={form.part} onChange={(e) => setForm({ ...form, part: e.target.value })} className="font-mono h-11" disabled={submitting} />
+                  <Select value={form.part} onValueChange={(v) => setForm({ ...form, part: v })} disabled={submitting}>
+                    <SelectTrigger id="part" className="h-11 font-mono"><SelectValue placeholder="Pilih Part" /></SelectTrigger>
+                    <SelectContent>
+                      {partsList.map((p: any) => (
+                        <SelectItem key={p.partNumber} value={p.partNumber} className="font-mono">
+                          {p.partNumber}
+                        </SelectItem>
+                      ))}
+                      {partsList.length === 0 && (
+                        <SelectItem value="none" disabled>Tidak ada part terdaftar</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="product">Product Name</Label>
-                  <Input id="product" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} className="h-11" disabled={submitting} />
+                  <Label htmlFor="operator">Operator Name</Label>
+                  <Input id="operator" value={form.operator} onChange={(e) => setForm({ ...form, operator: e.target.value })} className="h-11" disabled={submitting} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="line">LINE (Production Line)</Label>
                   <Select value={form.line} onValueChange={(v) => setForm({ ...form, line: v })} disabled={submitting}>
                     <SelectTrigger id="line" className="h-11"><SelectValue /></SelectTrigger>
-                    <SelectContent>{lines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                    <SelectContent>{lines.map((l: any) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
@@ -247,7 +219,7 @@ function PartInput() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lot">KODE (Lot Number)</Label>
-                  <Input id="lot" value={form.lot} onChange={(e) => setForm({ ...form, lot: e.target.value })} className="font-mono h-11" disabled={submitting} />
+                  <Input id="lot" value={form.lot} className="font-mono h-11 bg-muted/40" disabled={true} readOnly />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="date">TGL PROD (Production Date)</Label>
@@ -256,14 +228,14 @@ function PartInput() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <Button type="button" variant="outline" className="gap-2 sm:flex-1 h-11" disabled={submitting} onClick={handleSaveDraft}><Save className="h-4 w-4" />Save Draft</Button>
+                <Button type="button" variant="outline" className="gap-2 sm:flex-1 h-11" disabled={submitting} onClick={handleSaveDraft}><Save className="h-4 w-4" />Simpan Draft</Button>
                 <Button type="submit" disabled={submitting} className="gap-2 sm:flex-1 h-11 bg-gradient-primary shadow-glow">
                   {submitting ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   ) : (
                     <Send className="h-4 w-4" />
                   )}
-                  Submit Transaction
+                  Kirim Transaksi
                 </Button>
               </div>
             </form>
@@ -274,28 +246,28 @@ function PartInput() {
         <div className="space-y-4">
           <Card className="border-0 shadow-soft">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Auto-fill preview</CardTitle>
+              <CardTitle className="text-base">Pratinjau auto-fill</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <Row icon={Package} label="Product" value={form.product} />
-              <Row icon={Layers} label="Category" value={form.product.toLowerCase().includes("sub") ? "Sub-Assy" : "Assy"} />
-              <Row icon={Clock} label="Default shift" value={getPref("defaultShift")} />
+              <Row icon={Package} label="Product" value={partsList.find((p: any) => p.partNumber === form.part)?.productName || `SS COMP ${form.part} Sub-Assy`} />
+              <Row icon={Layers} label="Category" value="Sub-Assy" />
+              <Row icon={Clock} label="Shift default" value={getPref("defaultShift")} />
               <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-xs text-success flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4" /> Validation passed — ready to submit.
+                <CheckCircle2 className="h-4 w-4" /> Validasi berhasil — siap untuk dikirim.
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-0 shadow-soft">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Today's tally</CardTitle>
+              <CardTitle className="text-base">Rekap hari ini</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3 text-sm">
               {[
-                { l: "Submitted", v: "Active" },
-                { l: "Drafts", v: String(drafts.length) },
-                { l: "Approved", v: "Live" },
-                { l: "Rejected", v: "0" },
+                { l: "Terkirim", v: "Aktif" },
+                { l: "Draft", v: String(drafts.length) },
+                { l: "Disetujui", v: "Live" },
+                { l: "Ditolak", v: "0" },
               ].map((s) => (
                 <div key={s.l} className="rounded-lg bg-muted/50 p-3">
                   <div className="text-xs text-muted-foreground">{s.l}</div>
@@ -309,7 +281,7 @@ function PartInput() {
             <Card className="border-0 shadow-soft bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center justify-between">
-                  <span>Saved Drafts</span>
+                  <span>Draft Tersimpan</span>
                   <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">{drafts.length}</Badge>
                 </CardTitle>
               </CardHeader>
@@ -352,13 +324,13 @@ function PartInput() {
             <div className="mx-auto h-12 w-12 rounded-full bg-success/15 text-success grid place-items-center mb-2">
               <CheckCircle2 className="h-6 w-6" />
             </div>
-            <DialogTitle className="text-center">Transaction Submitted</DialogTitle>
+            <DialogTitle className="text-center">Transaksi Berhasil Dikirim</DialogTitle>
             <DialogDescription className="text-center">
-              Part {form.part} ({form.qty} pcs) recorded on {form.line}. The transaction has been persisted in MySQL.
+              Part {form.part} ({form.qty} pcs) dicatat pada {form.line}. Transaksi telah tersimpan di MySQL.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button className="w-full bg-gradient-primary" onClick={() => setOpen(false)}>Continue</Button>
+            <Button className="w-full bg-gradient-primary" onClick={() => setOpen(false)}>Lanjutkan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

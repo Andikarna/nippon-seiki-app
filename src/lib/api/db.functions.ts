@@ -80,7 +80,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
     }
 
     // Active production lines
-    const [lineRows] = await p.query<any>("SELECT id, name, active, capacity, shifts, operators FROM production_lines");
+    const [lineRows] = await p.query<any>("SELECT id, name, type, active, capacity, shifts, operators FROM production_lines");
     const lines = lineRows.map((l: any, i: number) => {
       const pcts = [88, 0, 76, 92, 64];
       return {
@@ -179,7 +179,7 @@ export const getFifoMaterials = createServerFn({ method: "GET" })
   .handler(async () => {
     const p = await getPool();
     const [rows] = await p.query<any>(
-      "SELECT id, part_number as partNumber, lot_number as lotNumber, DATE_FORMAT(incoming_date, '%Y-%m-%d') as incomingDate, position, status, quantity FROM fifo_materials ORDER BY incoming_date DESC"
+      "SELECT id, part_number as partNumber, lot_number as lotNumber, DATE_FORMAT(incoming_date, '%Y-%m-%d') as incomingDate, position, status, quantity, original_quantity as originalQuantity, origin_line as originLine, operator FROM fifo_materials ORDER BY incoming_date DESC"
     );
 
     const counts = {
@@ -282,9 +282,9 @@ export const addProductionRecord = createServerFn({ method: "POST" })
 
     // Insert to fifo_materials
     await p.query(
-      `INSERT INTO fifo_materials (id, part_number, lot_number, incoming_date, position, status, quantity) 
-       VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + ?`,
-      [materialId, partNumber, lotNumber, date, position, status, quantity, quantity]
+      `INSERT INTO fifo_materials (id, part_number, lot_number, incoming_date, position, status, quantity, original_quantity, origin_line, operator) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE quantity = quantity + ?`,
+      [materialId, partNumber, lotNumber, date, position, status, quantity, quantity, line, operator, quantity]
     );
 
     // Insert activity
@@ -385,9 +385,10 @@ export const getSettingsData = createServerFn({ method: "GET" })
     const p = await getPool();
 
     // Fetch users
-    const [users] = await p.query<any>("SELECT name, email, role, active FROM users");
+    const [users] = await p.query<any>("SELECT name, username, email, role, active FROM users");
     const usersMapped = users.map((u: any) => ({
       name: u.name,
+      username: u.username || u.email.split("@")[0],
       email: u.email,
       role: u.role.charAt(0).toUpperCase() + u.role.slice(1),
       line: u.email.includes("supervisor") || u.email.includes("manager") ? "All" : "Line A1",
@@ -395,13 +396,14 @@ export const getSettingsData = createServerFn({ method: "GET" })
     }));
 
     // Fetch production lines
-    const [lines] = await p.query<any>("SELECT id, name, active, capacity, shifts, operators FROM production_lines");
+    const [lines] = await p.query<any>("SELECT id, name, type, active, capacity, shifts, operators FROM production_lines");
 
     return {
       users: usersMapped,
       productionLines: lines.map((l: any) => ({
         id: l.id,
         name: l.name,
+        type: l.type,
         active: Boolean(l.active),
         capacity: l.capacity,
         shifts: l.shifts,
@@ -414,6 +416,7 @@ export const addSettingUser = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       name: z.string().min(1),
+      username: z.string().min(1),
       email: z.string().email(),
       role: z.string().min(1),
       password: z.string().optional(),
@@ -421,11 +424,11 @@ export const addSettingUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const p = await getPool();
-    const { name, email, role, password } = data;
+    const { name, username, email, role, password } = data;
     const pwd = password?.trim() || "123456";
     await p.query(
-      "INSERT INTO users (name, email, role, password) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, role = ?, password = ?",
-      [name, email, role.toLowerCase(), pwd, name, role.toLowerCase(), pwd]
+      "INSERT INTO users (name, username, email, role, password) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, username = ?, role = ?, password = ?",
+      [name, username, email, role.toLowerCase(), pwd, name, username, role.toLowerCase(), pwd]
     );
     return { success: true };
   });
@@ -435,6 +438,7 @@ export const addSettingLine = createServerFn({ method: "POST" })
     z.object({
       id: z.string().min(1),
       name: z.string().min(1),
+      type: z.string().min(1).default("in"),
       capacity: z.number(),
       shifts: z.number(),
       operators: z.number(),
@@ -442,10 +446,10 @@ export const addSettingLine = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const p = await getPool();
-    const { id, name, capacity, shifts, operators } = data;
+    const { id, name, type, capacity, shifts, operators } = data;
     await p.query(
-      "INSERT INTO production_lines (id, name, capacity, shifts, operators) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, capacity = ?, shifts = ?, operators = ?",
-      [id, name, capacity, shifts, operators, name, capacity, shifts, operators]
+      "INSERT INTO production_lines (id, name, type, capacity, shifts, operators) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, type = ?, capacity = ?, shifts = ?, operators = ?",
+      [id, name, type, capacity, shifts, operators, name, type, capacity, shifts, operators]
     );
     return { success: true };
   });
@@ -455,16 +459,17 @@ export const updateSettingUser = createServerFn({ method: "POST" })
     z.object({
       email: z.string().email(),
       name: z.string().min(1),
+      username: z.string().min(1),
       role: z.string().min(1),
       active: z.boolean(),
     })
   )
   .handler(async ({ data }) => {
     const p = await getPool();
-    const { email, name, role, active } = data;
+    const { email, name, username, role, active } = data;
     await p.query(
-      "UPDATE users SET name = ?, role = ?, active = ? WHERE email = ?",
-      [name, role.toLowerCase(), active ? 1 : 0, email]
+      "UPDATE users SET name = ?, username = ?, role = ?, active = ? WHERE email = ?",
+      [name, username, role.toLowerCase(), active ? 1 : 0, email]
     );
     return { success: true };
   });
@@ -482,6 +487,7 @@ export const updateSettingLine = createServerFn({ method: "POST" })
     z.object({
       id: z.string().min(1),
       name: z.string().min(1),
+      type: z.string().min(1).default("in"),
       capacity: z.number(),
       shifts: z.number(),
       operators: z.number(),
@@ -489,10 +495,10 @@ export const updateSettingLine = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const p = await getPool();
-    const { id, name, capacity, shifts, operators } = data;
+    const { id, name, type, capacity, shifts, operators } = data;
     await p.query(
-      "UPDATE production_lines SET name = ?, capacity = ?, shifts = ?, operators = ? WHERE id = ?",
-      [name, capacity, shifts, operators, id]
+      "UPDATE production_lines SET name = ?, type = ?, capacity = ?, shifts = ?, operators = ? WHERE id = ?",
+      [name, type, capacity, shifts, operators, id]
     );
     return { success: true };
   });
@@ -525,18 +531,18 @@ export const getReportsData = createServerFn({ method: "GET" })
 export const authenticateUser = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      email: z.string().email(),
+      username: z.string().min(1),
       password: z.string().optional(),
     })
   )
   .handler(async ({ data }) => {
     const p = await getPool();
-    const { email, password } = data;
+    const { username, password } = data;
     
     try {
       const [rows] = await p.query<any>(
-        "SELECT name, email, role, password FROM users WHERE LOWER(email) = LOWER(?)",
-        [email.trim()]
+        "SELECT name, username, email, role, password FROM users WHERE LOWER(username) = LOWER(?)",
+        [username.trim()]
       );
 
       if (rows.length > 0) {
@@ -546,6 +552,7 @@ export const authenticateUser = createServerFn({ method: "POST" })
             success: true,
             user: {
               name: rows[0].name,
+              username: rows[0].username,
               email: rows[0].email,
               role: rows[0].role,
             },
@@ -577,7 +584,7 @@ export const getActiveLines = createServerFn({ method: "GET" })
   .handler(async () => {
     const p = await getPool();
     try {
-      const [rows] = await p.query<any>("SELECT id, name FROM production_lines WHERE active = 1");
+      const [rows] = await p.query<any>("SELECT id, name, type FROM production_lines WHERE active = 1");
       return rows;
     } catch (e) {
       console.error("Database active lines query error:", e);
@@ -622,6 +629,130 @@ export const deleteProductionRecord = createServerFn({ method: "POST" })
       return { success: true };
     } catch (e) {
       console.error("Database delete error:", e);
+      return { success: false };
+    }
+  });
+
+// 14. GET NEXT GENERATED LOT NUMBER
+export const getNextLotNumber = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      line: z.string().min(1),
+      date: z.string().min(1),
+    })
+  )
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    const { line, date } = data;
+    
+    const lineCode = line.replace(/[^a-zA-Z0-9]/g, "");
+    const dateObj = new Date(date);
+    const month = dateObj.getMonth() + 1;
+    const yearLast2Digits = String(dateObj.getFullYear()).slice(-2);
+    
+    const basePattern = `${lineCode} - ${month}${yearLast2Digits}`;
+    
+    try {
+      // Query all existing lot numbers starting with this base pattern
+      const [rows] = await p.query<any>(
+        "SELECT lot_number FROM fifo_materials WHERE lot_number LIKE ?",
+        [`${basePattern}%`]
+      );
+      
+      const existingLots = rows.map((r: any) => r.lot_number);
+      
+      let seq = 1;
+      let candidate = `${basePattern}-${seq}`;
+      while (existingLots.includes(candidate)) {
+        seq++;
+        candidate = `${basePattern}-${seq}`;
+      }
+      
+      return { lotNumber: candidate };
+    } catch (e) {
+      console.error("Database query next lot number error:", e);
+      return { lotNumber: `${basePattern}-1` };
+    }
+  });
+
+// 15. GET ALL PARTS MASTER
+export const getParts = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const p = await getPool();
+    try {
+      const [rows] = await p.query<any>(
+        "SELECT part_number as partNumber, product_name as productName, threshold FROM parts ORDER BY part_number ASC"
+      );
+      return rows.map((r: any) => ({
+        partNumber: r.partNumber,
+        productName: r.productName,
+        threshold: Number(r.threshold),
+      }));
+    } catch (e) {
+      console.error("Database getParts error:", e);
+      return [];
+    }
+  });
+
+// 16. ADD NEW MASTER PART
+export const addPart = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      partNumber: z.string().min(1),
+      productName: z.string().min(1),
+      threshold: z.number(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    const { partNumber, productName, threshold } = data;
+    try {
+      await p.query(
+        "INSERT INTO parts (part_number, product_name, threshold) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE product_name = ?, threshold = ?",
+        [partNumber.trim(), productName.trim(), threshold, productName.trim(), threshold]
+      );
+      return { success: true };
+    } catch (e) {
+      console.error("Database addPart error:", e);
+      return { success: false };
+    }
+  });
+
+// 17. UPDATE MASTER PART
+export const updatePart = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      partNumber: z.string().min(1),
+      productName: z.string().min(1),
+      threshold: z.number(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    const { partNumber, productName, threshold } = data;
+    try {
+      await p.query(
+        "UPDATE parts SET product_name = ?, threshold = ? WHERE part_number = ?",
+        [productName.trim(), threshold, partNumber.trim()]
+      );
+      return { success: true };
+    } catch (e) {
+      console.error("Database updatePart error:", e);
+      return { success: false };
+    }
+  });
+
+// 18. DELETE MASTER PART
+export const deletePart = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ partNumber: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    const p = await getPool();
+    const { partNumber } = data;
+    try {
+      await p.query("DELETE FROM parts WHERE part_number = ?", [partNumber.trim()]);
+      return { success: true };
+    } catch (e) {
+      console.error("Database deletePart error:", e);
       return { success: false };
     }
   });

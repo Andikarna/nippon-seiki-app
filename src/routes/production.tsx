@@ -43,7 +43,7 @@ function ProductionPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const user = useUser();
-  const canCreateEntry = user?.role === "operator";
+  const canCreateEntry = user?.role === "operator_in";
 
   const [q, setQ] = useState("");
   const [line, setLine] = useState("all");
@@ -149,7 +149,7 @@ function ProductionPage() {
       // Format data for sheet
       const dataRows = [
         ["Production ID", "Date", "Part Number", "Product Name", "Qty", "Line", "Operator", "Status"],
-        ...allRecords.map((r) => [
+        ...allRecords.map((r: any) => [
           r.id,
           r.date,
           r.partNumber,
@@ -205,7 +205,7 @@ function ProductionPage() {
                 <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All lines</SelectItem>
-                  {lines.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+                  {lines.map((l: any) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1); }}>
@@ -262,7 +262,7 @@ function ProductionPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  records.map((r) => (
+                  records.map((r: any) => (
                     <TableRow key={r.id} className="hover:bg-muted/30">
                       <TableCell className="font-mono text-xs font-medium">{r.id}</TableCell>
                       <TableCell className="text-sm">{r.date}</TableCell>
@@ -439,7 +439,7 @@ function ProductionPage() {
                 <Select value={editForm.line} onValueChange={(v) => setEditForm({ ...editForm, line: v })}>
                   <SelectTrigger id="edit-line" className="h-11"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {lines.map((l) => (
+                    {lines.map((l: any) => (
                       <SelectItem key={l} value={l}>{l}</SelectItem>
                     ))}
                   </SelectContent>

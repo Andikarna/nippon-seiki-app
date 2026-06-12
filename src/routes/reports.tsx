@@ -28,36 +28,36 @@ export const Route = createFileRoute("/reports")({
 const reportTypes = [
   {
     id: "daily",
-    title: "Daily Production",
-    desc: "Today's production output by line and operator.",
+    title: "Produksi Harian",
+    desc: "Output produksi hari ini per lini dan operator.",
     icon: BarChart3,
     color: "text-primary bg-primary/10",
   },
   {
     id: "weekly",
-    title: "Weekly Production",
-    desc: "7-day rolling production summary.",
+    title: "Produksi Mingguan",
+    desc: "Ringkasan produksi 7 hari terakhir.",
     icon: TrendingUp,
     color: "text-info bg-info/10",
   },
   {
     id: "monthly",
-    title: "Monthly Production",
-    desc: "Full month performance review.",
+    title: "Produksi Bulanan",
+    desc: "Tinjauan kinerja bulan penuh.",
     icon: Calendar,
     color: "text-success bg-success/10",
   },
   {
     id: "fifo",
-    title: "FIFO Compliance",
-    desc: "Material flow compliance audit.",
+    title: "Kepatuhan FIFO",
+    desc: "Audit kepatuhan aliran material.",
     icon: CheckCircle,
     color: "text-warning bg-warning/10",
   },
   {
     id: "movement",
-    title: "Material Movement",
-    desc: "Incoming and outgoing material trace.",
+    title: "Pergerakan Material",
+    desc: "Jejak material masuk dan keluar.",
     icon: Package,
     color: "text-purple-500 bg-purple-500/10",
   },
@@ -154,7 +154,7 @@ function Reports() {
 
   // ── Export to Excel ──
   const handleExportExcel = () => {
-    if (tableRows.length === 0) { toast.warning("No data to export."); return; }
+    if (tableRows.length === 0) { toast.warning("Tidak ada data untuk diekspor."); return; }
     const isfifo = selectedType === "fifo";
     const headers = isfifo
       ? ["ID", "Part Number", "Lot Number", "Incoming Date", "Position", "Status", "Qty"]
@@ -169,12 +169,12 @@ function Reports() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, current.title);
     XLSX.writeFile(wb, `NPMS_${current.title.replace(/\s+/g, "_")}_${today()}.xlsx`);
-    toast.success(`Exported ${tableRows.length} rows to Excel.`);
+    toast.success(`Diekspor ${tableRows.length} baris ke Excel.`);
   };
 
   // ── Export to CSV ──
   const handleExportCSV = () => {
-    if (tableRows.length === 0) { toast.warning("No data to export."); return; }
+    if (tableRows.length === 0) { toast.warning("Tidak ada data untuk diekspor."); return; }
     const isfifo = selectedType === "fifo";
     const headers = isfifo
       ? ["ID", "Part Number", "Lot Number", "Incoming Date", "Position", "Status", "Qty"]
@@ -195,7 +195,7 @@ function Reports() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    toast.success(`Exported ${tableRows.length} rows to CSV.`);
+    toast.success(`Diekspor ${tableRows.length} baris ke CSV.`);
   };
 
   // ── Print document ──
@@ -227,12 +227,12 @@ function Reports() {
         <body>${el.innerHTML}</body>
       </html>`;
     const win = window.open("", "_blank", "width=900,height=700");
-    if (!win) { toast.error("Pop-up blocked — please allow pop-ups."); return; }
+    if (!win) { toast.error("Pop-up diblokir — harap izinkan pop-up."); return; }
     win.document.write(html);
     win.document.close();
     win.focus();
     setTimeout(() => { win.print(); win.close(); }, 400);
-    toast.success("Sent to printer.");
+    toast.success("Dikirim ke printer.");
   };
 
   // ── Download button — dispatches to format ──
@@ -241,12 +241,12 @@ function Reports() {
     if (outputFormat === "csv") { handleExportCSV(); return; }
     // PDF: open print dialog in new window (browser saves as PDF)
     handlePrint();
-    toast.info("To save as PDF: select 'Save as PDF' in the print dialog.");
+    toast.info("Untuk menyimpan sebagai PDF: pilih 'Simpan sebagai PDF' di dialog cetak.");
   };
 
   // ── Print QR Label ──
   const handlePrintLabel = () => {
-    if (tableRows.length === 0) { toast.warning("No records to label."); return; }
+    if (tableRows.length === 0) { toast.warning("Tidak ada record untuk label."); return; }
     const labelHtml = `
       <!DOCTYPE html>
       <html>
@@ -277,19 +277,19 @@ function Reports() {
         </body>
       </html>`;
     const win = window.open("", "_blank", "width=900,height=700");
-    if (!win) { toast.error("Pop-up blocked — please allow pop-ups."); return; }
+    if (!win) { toast.error("Pop-up diblokir — harap izinkan pop-up."); return; }
     win.document.write(labelHtml);
     win.document.close();
     win.focus();
     setTimeout(() => { win.print(); win.close(); }, 400);
-    toast.success(`Printing ${Math.min(tableRows.length, 20)} QR labels.`);
+    toast.success(`Mencetak ${Math.min(tableRows.length, 20)} label QR.`);
   };
 
   // ── FIFO table columns ──
   const isFifo = selectedType === "fifo";
 
   return (
-    <AppLayout title="Reports & Print" subtitle="Generate, preview, and export production documents.">
+    <AppLayout title="Reports & Print" subtitle="Buat, pratinjau, dan ekspor dokumen produksi.">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* ── Left sidebar ─────────────────────────────── */}
@@ -300,7 +300,7 @@ function Reports() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <ClipboardList className="h-4 w-4 text-primary" />
-                Report type
+                Jenis laporan
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-1 pt-0">
@@ -336,7 +336,7 @@ function Reports() {
             </CardHeader>
             <CardContent className="space-y-3 pt-0">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Date range</Label>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Rentang tanggal</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     type="date"
@@ -353,15 +353,15 @@ function Reports() {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Production line</Label>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Lini produksi</Label>
                 <Select value={lineFilter} onValueChange={setLineFilter}>
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All lines</SelectItem>
-                    <SelectItem value="SC">Lines SC (SC-1, SC-2…)</SelectItem>
-                    <SelectItem value="SS">Lines SS (SS-1, SS-2…)</SelectItem>
+                    <SelectItem value="all">Semua lini</SelectItem>
+                    <SelectItem value="SC">Lini SC (SC-1, SC-2…)</SelectItem>
+                    <SelectItem value="SS">Lini SS (SS-1, SS-2…)</SelectItem>
                     {allLines.map((l) => (
                       <SelectItem key={l} value={l}>{l}</SelectItem>
                     ))}
@@ -369,9 +369,9 @@ function Reports() {
                 </Select>
               </div>
               <div className="pt-1 text-xs text-muted-foreground">
-                {isLoading ? "Loading…" : (
+                {isLoading ? "Memuat…" : (
                   <span>
-                    <span className="font-semibold text-foreground">{tableRows.length}</span> records matched
+                    <span className="font-semibold text-foreground">{tableRows.length}</span> record cocok
                   </span>
                 )}
               </div>
@@ -381,7 +381,7 @@ function Reports() {
           {/* Output format */}
           <Card className="border-0 shadow-soft">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base">Output format</CardTitle>
+              <CardTitle className="text-base">Format output</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-3 gap-2 pt-0">
               {[
@@ -416,7 +416,7 @@ function Reports() {
             <div>
               <CardTitle className="text-base">{current.title} — Preview</CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {startDate} → {endDate} &nbsp;·&nbsp; {lineFilter === "all" ? "All lines" : lineFilter}
+                {startDate} → {endDate} &nbsp;·&nbsp; {lineFilter === "all" ? "Semua lini" : lineFilter}
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
@@ -426,10 +426,10 @@ function Reports() {
                 className="gap-2"
                 onClick={handlePrintLabel}
                 disabled={isLoading || tableRows.length === 0}
-                title="Print QR labels for matched records"
+                title="Cetak label QR untuk record yang cocok"
               >
                 <QrCode className="h-4 w-4" />
-                Print Label
+                Cetak Label
               </Button>
               <Button
                 variant="outline"
@@ -437,20 +437,20 @@ function Reports() {
                 className="gap-2"
                 onClick={handleDownload}
                 disabled={isLoading || tableRows.length === 0}
-                title={`Download as ${outputFormat.toUpperCase()}`}
+                title={`Unduh sebagai ${outputFormat.toUpperCase()}`}
               >
                 <Download className="h-4 w-4" />
-                Download
+                Unduh
               </Button>
               <Button
                 size="sm"
                 className="gap-2 bg-gradient-primary"
                 onClick={handlePrint}
                 disabled={isLoading || tableRows.length === 0}
-                title="Print document"
+                title="Cetak dokumen"
               >
                 <Printer className="h-4 w-4" />
-                Print
+                Cetak
               </Button>
             </div>
           </CardHeader>
@@ -469,7 +469,7 @@ function Reports() {
                   </div>
                   <div>
                     <div className="text-sm font-bold">PT. Indonesia Nippon Seiki</div>
-                    <div className="text-xs text-muted-foreground">Production Monitoring System · Confidential</div>
+                    <div className="text-xs text-muted-foreground">Sistem Monitoring Produksi · Rahasia</div>
                   </div>
                 </div>
                 <div className="text-right text-xs text-muted-foreground">
@@ -481,23 +481,23 @@ function Reports() {
               {/* Report title */}
               <div className="mt-5">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold">{current.title} Report</h2>
+                  <h2 className="text-xl font-bold">Laporan {current.title}</h2>
                   <Badge variant="outline" className="text-[10px] font-mono">NPMS v2.4.1</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Period: {startDate} – {endDate} &nbsp;·&nbsp;
-                  Line: {lineFilter === "all" ? "All" : lineFilter} &nbsp;·&nbsp;
-                  Generated: {new Date().toLocaleString("id-ID")}
+                  Periode: {startDate} – {endDate} &nbsp;·&nbsp;
+                  Lini: {lineFilter === "all" ? "Semua" : lineFilter} &nbsp;·&nbsp;
+                  Dibuat: {new Date().toLocaleString("id-ID")}
                 </p>
               </div>
 
               {/* KPI boxes */}
               <div className="kpi-grid grid grid-cols-4 gap-3 mt-5">
                 {[
-                  { l: "Total Records",  v: tableRows.length },
-                  { l: "Total Qty",      v: totalQty.toLocaleString() },
-                  { l: "Compliant",      v: compliantCount },
-                  { l: "FIFO Rate",      v: `${complianceRate}%` },
+                  { l: "Total Record",    v: tableRows.length },
+                  { l: "Total Qty",       v: totalQty.toLocaleString() },
+                  { l: "Sesuai",          v: compliantCount },
+                  { l: "Tingkat FIFO",    v: `${complianceRate}%` },
                 ].map((s) => (
                   <div key={s.l} className="kpi-box rounded-lg border p-3">
                     <div className="kpi-label text-[10px] text-muted-foreground">{s.l}</div>
@@ -539,13 +539,13 @@ function Reports() {
                       <tr>
                         <td colSpan={7} className="py-10 text-center text-muted-foreground text-xs">
                           <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
-                          Loading report data…
+                          Memuat data laporan…
                         </td>
                       </tr>
                     ) : tableRows.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="py-10 text-center text-muted-foreground text-xs">
-                          No records match the selected parameters.
+                          Tidak ada record yang cocok dengan parameter yang dipilih.
                         </td>
                       </tr>
                     ) : (
@@ -594,7 +594,7 @@ function Reports() {
 
               {tableRows.length > 15 && !isLoading && (
                 <p className="text-center text-xs text-muted-foreground mt-2">
-                  Showing 15 of {tableRows.length} records — download to get full dataset.
+                  Menampilkan 15 dari {tableRows.length} record — unduh untuk mendapatkan dataset lengkap.
                 </p>
               )}
 
@@ -602,13 +602,13 @@ function Reports() {
               <div className="footer mt-8 flex justify-between items-end text-xs text-muted-foreground border-t pt-4">
                 <div>
                   <div className="h-12 w-36 border-b border-muted-foreground/40 mb-1" />
-                  <div>Supervisor / Authorized by</div>
+                  <div>Supervisor / Disetujui oleh</div>
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-[10px]">SHA256: {Date.now().toString(16).toUpperCase().padStart(16, "0")}…</div>
                   <div className="flex items-center gap-1 justify-end mt-1">
                     <Calendar className="h-3 w-3" />
-                    Auto-generated · NPMS v2.4.1
+                    Dibuat otomatis · NPMS v2.4.1
                   </div>
                 </div>
               </div>

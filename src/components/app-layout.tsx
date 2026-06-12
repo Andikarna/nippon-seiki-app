@@ -110,8 +110,8 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
       if (now - lastActive > IDLE_TIMEOUT) {
         setUser(null);
         localStorage.removeItem(LAST_ACTIVE_KEY);
-        toast.warning("Session Expired", {
-          description: "You have been logged out due to 1 hour of inactivity.",
+        toast.warning("Sesi Berakhir", {
+          description: "Anda telah keluar karena tidak aktif selama 1 jam.",
         });
         navigate({ to: "/login" });
       }
@@ -137,7 +137,7 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <span className="text-sm font-medium text-muted-foreground">Verifying session...</span>
+          <span className="text-sm font-medium text-muted-foreground">Memverifikasi sesi...</span>
         </div>
       </div>
     );
@@ -192,7 +192,7 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
         <div className="p-3 border-t border-sidebar-border">
           <div className="rounded-lg bg-sidebar-accent/50 p-3 text-xs">
             <div className="font-semibold text-sidebar-foreground">v2.4.1 · Production</div>
-            <div className="text-sidebar-foreground/60 mt-0.5">All systems operational</div>
+            <div className="text-sidebar-foreground/60 mt-0.5">Semua sistem berjalan normal</div>
           </div>
         </div>
       </aside>
@@ -202,7 +202,7 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
         <header className="h-16 bg-background border-b flex items-center px-4 md:px-8 gap-3 sticky top-0 z-10">
           <div className="flex-1 max-w-md relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search part number, lot, operator..." className="pl-9 bg-muted/50 border-0" />
+            <Input placeholder="Cari nomor part, lot, operator..." className="pl-9 bg-muted/50 border-0" />
           </div>
           <Button variant="ghost" size="icon" onClick={toggleDark} aria-label="Toggle theme" className="ml-auto">
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -218,18 +218,18 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 mt-1.5 p-2">
               <DropdownMenuLabel className="font-semibold text-sm flex items-center justify-between">
-                <span>Alerts & Notifications</span>
+                <span>Peringatan & Notifikasi</span>
                 {alerts && alerts.length > 0 && (
                   <Badge variant="secondary" className="bg-destructive/10 text-destructive border-0 text-[10px]">
-                    {alerts.length} new
+                    {alerts.length} baru
                   </Badge>
                 )}
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               {isLoading ? (
-                <div className="py-4 text-center text-xs text-muted-foreground">Loading alerts...</div>
+                <div className="py-4 text-center text-xs text-muted-foreground">Memuat peringatan...</div>
               ) : !alerts || alerts.length === 0 ? (
-                <div className="py-6 text-center text-xs text-muted-foreground">No new notifications.</div>
+                <div className="py-6 text-center text-xs text-muted-foreground">Tidak ada notifikasi baru.</div>
               ) : (
                 <div className="space-y-1 max-h-64 overflow-y-auto">
                   {alerts.map((a: any) => {
@@ -267,13 +267,13 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
             <DropdownMenuContent align="end" className="w-56 mt-1.5">
               <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem><UserIcon className="h-4 w-4 mr-2" />Profile</DropdownMenuItem>
+              <DropdownMenuItem><UserIcon className="h-4 w-4 mr-2" />Profil</DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
                 <Settings className="h-4 w-4 mr-2" />Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => { setUser(null); navigate({ to: "/login" }); }}>
-                <LogOut className="h-4 w-4 mr-2" />Logout
+                <LogOut className="h-4 w-4 mr-2" />Keluar
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -282,8 +282,8 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
         <main className="flex-1 p-4 md:p-8 space-y-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">{isAllowed ? title : "Access Denied"}</h1>
-              {subtitle && <p className="text-sm text-muted-foreground mt-1">{isAllowed ? subtitle : "Unauthorized Page Access"}</p>}
+              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">{isAllowed ? title : "Akses Ditolak"}</h1>
+              {subtitle && <p className="text-sm text-muted-foreground mt-1">{isAllowed ? subtitle : "Akses Halaman Tidak Diizinkan"}</p>}
             </div>
             <Badge variant="outline" className="gap-1.5 py-1.5 px-3 bg-success/10 text-success border-success/20">
               <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
@@ -297,12 +297,12 @@ export function AppLayout({ children, title, subtitle }: { children: ReactNode; 
               <div className="h-16 w-16 rounded-full bg-destructive/10 text-destructive grid place-items-center mb-4">
                 <XCircle className="h-8 w-8" />
               </div>
-              <h2 className="text-xl font-bold text-foreground">Access Denied</h2>
+              <h2 className="text-xl font-bold text-foreground">Akses Ditolak</h2>
               <p className="text-sm text-muted-foreground mt-2">
-                Your role ({user?.role}) is not authorized to access the "{title}" page. Please contact your supervisor or manager.
+                Peran Anda ({user?.role}) tidak memiliki akses ke halaman "{title}". Hubungi supervisor atau manajer Anda.
               </p>
               <Button className="mt-6 bg-gradient-primary" onClick={() => navigate({ to: "/dashboard" })}>
-                Back to Dashboard
+                Kembali ke Dashboard
               </Button>
             </div>
           )}
