@@ -289,7 +289,7 @@ function PartOut() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dest">Lini Tujuan</Label>
+                  <Label htmlFor="dest">Line Tujuan</Label>
                   <Select value={form.line} onValueChange={(v) => setForm({ ...form, line: v })} disabled={submitting}>
                     <SelectTrigger id="dest" className="h-11"><SelectValue /></SelectTrigger>
                     <SelectContent>{lines.map((l: any) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>

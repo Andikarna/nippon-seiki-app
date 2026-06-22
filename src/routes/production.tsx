@@ -17,12 +17,12 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Filter, Download, Plus, MoreHorizontal, Eye, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, Plus, MoreHorizontal, Eye, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getProductionRecords, getActiveLines, updateProductionRecord, deleteProductionRecord } from "@/lib/api/db.functions";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
+
 import { useUser } from "@/lib/auth";
 
 export const Route = createFileRoute("/production")({
@@ -135,61 +135,7 @@ function ProductionPage() {
     }
   };
 
-  const handleExportExcel = async () => {
-    try {
-      const res = await getProductionRecords({
-        data: { q, line, status, startDate, endDate, page: 1, perPage: 10000 }
-      });
-      const allRecords = res?.records ?? [];
-      if (allRecords.length === 0) {
-        toast.warning("No records to export.");
-        return;
-      }
 
-      // Format data for sheet
-      const dataRows = [
-        ["Production ID", "Date", "Part Number", "Product Name", "Qty", "Line", "Operator", "Status"],
-        ...allRecords.map((r: any) => [
-          r.id,
-          r.date,
-          r.partNumber,
-          r.productName,
-          Number(r.quantity),
-          r.line,
-          r.operator,
-          r.status,
-        ]),
-      ];
-
-      // Create Worksheet
-      const worksheet = XLSX.utils.aoa_to_sheet(dataRows);
-
-      // Set column widths to make it neat (rapih)
-      worksheet["!cols"] = [
-        { wch: 18 }, // Production ID
-        { wch: 14 }, // Date
-        { wch: 16 }, // Part Number
-        { wch: 32 }, // Product Name
-        { wch: 10 }, // Qty
-        { wch: 10 }, // Line
-        { wch: 22 }, // Operator
-        { wch: 15 }, // Status
-      ];
-
-      // Create Workbook
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Production Data");
-
-      // Write workbook and download as .xlsx file
-      const fileName = `production_records_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
-
-      toast.success("Production records exported to Excel successfully.");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to export records to Excel.");
-    }
-  };
 
   return (
     <AppLayout title="Production Data" subtitle="Monitor every production transaction across all lines.">
@@ -220,9 +166,6 @@ function ProductionPage() {
               <Button variant="outline" className="gap-2" onClick={() => setShowDateRangeDialog(true)}>
                 <Filter className="h-4 w-4" />
                 {startDate || endDate ? "Date range (Active)" : "Date range"}
-              </Button>
-              <Button variant="outline" className="gap-2" onClick={handleExportExcel}>
-                <Download className="h-4 w-4" />Export
               </Button>
               {canCreateEntry && (
                 <Button className="gap-2 bg-gradient-primary" onClick={() => navigate({ to: "/part-input" })}>
