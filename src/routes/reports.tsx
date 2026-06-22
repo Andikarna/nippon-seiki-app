@@ -9,7 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  FileText, Calendar, Download, Printer, QrCode,
+  FileText, Calendar, Download, Printer,
   FileSpreadsheet, FileType, BarChart3, Package,
   CheckCircle, TrendingUp, ClipboardList, Loader2,
 } from "lucide-react";
@@ -244,46 +244,7 @@ function Reports() {
     toast.info("Untuk menyimpan sebagai PDF: pilih 'Simpan sebagai PDF' di dialog cetak.");
   };
 
-  // ── Print QR Label ──
-  const handlePrintLabel = () => {
-    if (tableRows.length === 0) { toast.warning("Tidak ada record untuk label."); return; }
-    const labelHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>QR Labels — NPMS</title>
-          <style>
-            * { box-sizing: border-box; font-family: Arial, sans-serif; }
-            body { margin: 0; padding: 16px; background: white; }
-            .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-            .label { border: 1px solid #ccc; border-radius: 6px; padding: 8px; font-size: 9px; page-break-inside: avoid; }
-            .label-id { font-weight: 700; font-size: 10px; margin-bottom: 4px; }
-            .qr { width: 56px; height: 56px; border: 1px solid #999; display: grid; place-items: center; font-size: 7px; color: #999; margin: 4px 0; }
-            .label-row { color: #555; margin: 1px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="grid">
-            ${tableRows.slice(0, 20).map((r) => `
-              <div class="label">
-                <div class="label-id">${r.id}</div>
-                <div class="qr">QR<br/>${r.partNumber ?? r.lotNumber ?? ""}</div>
-                <div class="label-row">Part: ${r.partNumber ?? r.lotNumber ?? "—"}</div>
-                <div class="label-row">Line: ${r.line ?? r.position ?? "—"}</div>
-                <div class="label-row">Qty: ${r.quantity ?? "—"}</div>
-                <div class="label-row">Date: ${r.date ?? r.incomingDate ?? "—"}</div>
-              </div>`).join("")}
-          </div>
-        </body>
-      </html>`;
-    const win = window.open("", "_blank", "width=900,height=700");
-    if (!win) { toast.error("Pop-up diblokir — harap izinkan pop-up."); return; }
-    win.document.write(labelHtml);
-    win.document.close();
-    win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 400);
-    toast.success(`Mencetak ${Math.min(tableRows.length, 20)} label QR.`);
-  };
+
 
   // ── FIFO table columns ──
   const isFifo = selectedType === "fifo";
@@ -420,17 +381,6 @@ function Reports() {
               </p>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-                onClick={handlePrintLabel}
-                disabled={isLoading || tableRows.length === 0}
-                title="Cetak label QR untuk record yang cocok"
-              >
-                <QrCode className="h-4 w-4" />
-                Cetak Label
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
